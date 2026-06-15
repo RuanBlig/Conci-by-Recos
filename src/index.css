@@ -1,0 +1,65 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", sans-serif;
+  --font-serif: "Playfair Display", Georgia, serif;
+  --color-primary: #121212;
+  --color-gold: #cca472;
+  --color-gold-hover: #ba9361;
+  --color-dark-card: #1c1c1c;
+  --color-accent: #cca472;
+  --color-accent-light: #fcfcfc;
+  --color-mid: #181818;
+  --color-slate-400: #cacaca;
+
+  --color-amber-50: #fcf9f2;
+  --color-amber-100: #f5f0e1;
+  --color-amber-200: #ebdcb9;
+  --color-amber-300: #dec18b;
+  --color-amber-400: #cca472;
+  --color-amber-500: #cca472;
+  --color-amber-600: #ba9361;
+  --color-amber-700: #9c7546;
+  --color-amber-800: #7d5934;
+  --color-amber-900: #624326;
+  --color-amber-950: #3c2512;
+}
+
+:root {
+  --color-primary: #121212;
+  --color-accent: #cca472;
+  --color-accent-light: #fcfcfc;
+  --color-mid: #181818;
+}
+
+body {
+  background-color: #121212;
+  color: #f3f4f6;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* Ensure all paragraph elements and their inner text elements are at least 13px */
+p {
+  font-size: 13px;
+}
+
+p.text-xs,
+p.text-\[11px\],
+p.text-\[10px\],
+p.text-\[9px\],
+p.text-\[8px\],
+p.text-\[7px\],
+p.text-\[12px\],
+p .text-xs,
+p .text-\[11px\],
+p .text-\[10px\],
+p .text-\[9px\],
+p .text-\[8px\],
+p .text-\[7px\],
+p .text-\[12px\],
+p span {
+  font-size: 13px !important;
+}

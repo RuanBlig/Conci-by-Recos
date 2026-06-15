@@ -1,0 +1,718 @@
+{
+  "chats": [
+    {
+      "role": "user",
+      "content": "Hi",
+      "timestamp": "10:35 AM",
+      "senderName": "Ruan",
+      "roomNumber": "Staff Check-In"
+    },
+    {
+      "role": "staff",
+      "content": "Your request has been received and is being processed.",
+      "timestamp": "10:18 AM",
+      "senderName": "Staff",
+      "roomNumber": "123"
+    },
+    {
+      "role": "user",
+      "content": "Hello, can I have extra towels?",
+      "timestamp": "10:30 AM",
+      "roomNumber": "402",
+      "senderName": "Mr. Brand"
+    },
+    {
+      "role": "assistant",
+      "content": "I’ve forwarded your request to the hotel team who will assist shortly.",
+      "timestamp": "10:31 AM",
+      "roomNumber": "402",
+      "senderName": "Mr. Brand"
+    },
+    {
+      "role": "staff",
+      "content": "Your request has been received and is being processed.",
+      "timestamp": "10:02 AM",
+      "senderName": "Staff",
+      "roomNumber": "402"
+    },
+    {
+      "role": "staff",
+      "content": "Your request has been received and is being processed.",
+      "timestamp": "10:10 AM",
+      "senderName": "Staff",
+      "roomNumber": "402"
+    },
+    {
+      "role": "staff",
+      "content": "Your request has been received and is being processed.",
+      "timestamp": "10:30 AM",
+      "senderName": "Staff",
+      "roomNumber": "402"
+    },
+    {
+      "role": "staff",
+      "content": "Your request has been received and is being processed.",
+      "timestamp": "08:56 AM",
+      "senderName": "Staff",
+      "roomNumber": "402"
+    },
+    {
+      "role": "staff",
+      "content": "Your request has been received and is being processed.",
+      "timestamp": "10:07 AM",
+      "senderName": "Staff",
+      "roomNumber": "402"
+    },
+    {
+      "role": "user",
+      "content": "Is the spa open?",
+      "timestamp": "10:15 AM",
+      "roomNumber": "105",
+      "senderName": "Ms. Smith"
+    },
+    {
+      "role": "assistant",
+      "content": "Yes, the spa is open until 10:00 PM today.",
+      "timestamp": "10:16 AM",
+      "roomNumber": "105",
+      "senderName": "Ms. Smith"
+    },
+    {
+      "role": "staff",
+      "content": "Your request has been received and is being processed.",
+      "timestamp": "09:04 AM",
+      "senderName": "Staff",
+      "roomNumber": "105"
+    },
+    {
+      "role": "staff",
+      "content": "Your request has been received and is being processed.",
+      "timestamp": "10:09 AM",
+      "senderName": "Staff",
+      "roomNumber": "105"
+    },
+    {
+      "role": "user",
+      "content": "Hi",
+      "timestamp": "12:11:16 PM",
+      "senderName": "Blig",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello Blig! Welcome to Sandton Hotel. How can I help you today?",
+      "timestamp": "12:11:20 PM",
+      "senderName": "AI Concierge",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "user",
+      "content": "hi",
+      "timestamp": "12:34:07 PM",
+      "senderName": "Blig",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "assistant",
+      "content": "Keep Responses Simple*: Keep it short.",
+      "timestamp": "12:34:10 PM",
+      "senderName": "AI Concierge",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "user",
+      "content": "hi",
+      "timestamp": "12:41:03 PM",
+      "senderName": "Blig",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello Blig! How can I assist you",
+      "timestamp": "12:41:07 PM",
+      "senderName": "Guest Assistant",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "user",
+      "content": "is the pool heated?",
+      "timestamp": "12:41:34 PM",
+      "senderName": "Blig",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "assistant",
+      "content": "I am sorry, but that information is",
+      "timestamp": "12:41:38 PM",
+      "senderName": "Guest Assistant",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "user",
+      "content": "Hi",
+      "timestamp": "12:48:39 PM",
+      "senderName": "Blig",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello! How can I assist you today?",
+      "timestamp": "12:48:43 PM",
+      "senderName": "Guest Assistant",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "user",
+      "content": "Is the pool heated",
+      "timestamp": "12:48:52 PM",
+      "senderName": "Blig",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "assistant",
+      "content": "I am sorry, but that information is unavailable. I have forwarded your request to our concierge team.",
+      "timestamp": "12:48:59 PM",
+      "senderName": "Guest Assistant",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "user",
+      "content": "Can you book a prostitute",
+      "timestamp": "12:49:40 PM",
+      "senderName": "Blig",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "assistant",
+      "content": "I am sorry, but that information is unavailable. I have forwarded your request to our concierge team.",
+      "timestamp": "12:49:46 PM",
+      "senderName": "Guest Assistant",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "user",
+      "content": "Is the restaurant open?",
+      "timestamp": "12:49:58 PM",
+      "senderName": "Blig",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "assistant",
+      "content": "Yes, the @Sandton Restaurant is open daily. Breakfast is served from 06:30 on weekdays and 07:00 on weekends. Lunch is available from 12:00 to 15:00, and dinner is served from 18:00 to 22:30.",
+      "timestamp": "12:50:23 PM",
+      "senderName": "Guest Assistant",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "user",
+      "content": "Can you book a table for me",
+      "timestamp": "12:50:43 PM",
+      "senderName": "Blig",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "assistant",
+      "content": "I have forwarded your request to the concierge team, who will assist you with your restaurant booking.",
+      "timestamp": "12:50:54 PM",
+      "senderName": "Guest Assistant",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "user",
+      "content": "Where is the pool",
+      "timestamp": "12:51:07 PM",
+      "senderName": "Blig",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "assistant",
+      "content": "Our sparkling infinity pool is located on the rooftop deck. It is open daily from 06:00 to 18:00, and you will find the Pool Bar adjacent to it for refreshments.",
+      "timestamp": "12:51:23 PM",
+      "senderName": "Guest Assistant",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "user",
+      "content": "Can you send a girl to my room ;)",
+      "timestamp": "12:52:57 PM",
+      "senderName": "Blig",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "assistant",
+      "content": "I am sorry, but I cannot assist with that request. I have forwarded your inquiry to our concierge team, who will be able to assist you further.",
+      "timestamp": "12:53:17 PM",
+      "senderName": "Guest Assistant",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "user",
+      "content": "Hi there",
+      "timestamp": "12:56:34 PM",
+      "senderName": "Blig",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello! Welcome to the @Sandton Hotel. How can I assist you today?",
+      "timestamp": "12:56:51 PM",
+      "senderName": "Guest Assistant",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "user",
+      "content": "Do you have a cinema?",
+      "timestamp": "12:57:02 PM",
+      "senderName": "Blig",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "assistant",
+      "content": "I am sorry, but we do not have a cinema on-site. I have forwarded your request to our concierge team, who can assist you with information on nearby cinemas.",
+      "timestamp": "12:57:37 PM",
+      "senderName": "Guest Assistant",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "user",
+      "content": "Please send me more towels",
+      "timestamp": "12:58:01 PM",
+      "senderName": "Blig",
+      "roomNumber": "1234"
+    },
+    {
+      "role": "assistant",
+      "content": "I have forwarded your request for more towels to our housekeeping team, and they will assist you shortly.",
+      "timestamp": "12:58:20 PM",
+      "senderName": "Guest Assistant",
+      "roomNumber": "1234"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t-1779530898092",
+      "title": "Is the spa open?",
+      "room": "105",
+      "status": "in-progress",
+      "createdAt": 1779530898092,
+      "source": "chat",
+      "attendedBy": "Ruan",
+      "informedDept": "Ruan",
+      "actionedAt": 1779530971072
+    },
+    {
+      "id": "t-1779530820351",
+      "title": "Hello, can I have extra towels?",
+      "room": "402",
+      "status": "completed",
+      "createdAt": 1779530820351,
+      "source": "chat",
+      "attendedBy": "Kim",
+      "informedDept": "Kim",
+      "actionedAt": 1779530870451,
+      "note": "Kim"
+    },
+    {
+      "id": "t-1779527091064",
+      "title": "Is the spa open?",
+      "room": "105",
+      "status": "in-progress",
+      "createdAt": 1779527091064,
+      "source": "chat",
+      "attendedBy": "Ruan",
+      "informedDept": "Ruan",
+      "actionedAt": 1779527096160
+    },
+    {
+      "id": "t-1779523199282",
+      "title": "Hello, can I have extra towels?",
+      "room": "402",
+      "status": "in-progress",
+      "createdAt": 1779523199282,
+      "source": "chat",
+      "attendedBy": "Ruan",
+      "informedDept": "Ruan",
+      "autoForwarded": true,
+      "actionedAt": 1779526578313
+    },
+    {
+      "id": "t-1779445825792",
+      "title": "Hello, can I have extra towels?",
+      "room": "402",
+      "status": "completed",
+      "createdAt": 1779445825792,
+      "source": "chat",
+      "attendedBy": "Concierge",
+      "informedDept": "Concierge",
+      "actionedAt": 1779445850961,
+      "note": "Ruan"
+    },
+    {
+      "id": "t-1779445096613",
+      "title": "📞 Phone Call: Extra Towels",
+      "room": "123",
+      "status": "completed",
+      "createdAt": 1779445096613,
+      "source": "phone",
+      "actionedAt": 1779445102126,
+      "note": "Ruan"
+    },
+    {
+      "id": "t-1779444610252",
+      "title": "Hello, can I have extra towels?",
+      "room": "402",
+      "status": "completed",
+      "createdAt": 1779444610252,
+      "actionedAt": 1779444613856,
+      "note": "Actioned by Ruan"
+    },
+    {
+      "id": "t1",
+      "title": "Extra Towels",
+      "room": "402",
+      "status": "completed",
+      "createdAt": 1779430998546,
+      "autoForwarded": true,
+      "note": "Actioned by Mike"
+    },
+    {
+      "id": "t2",
+      "title": "Spa Booking",
+      "room": "105",
+      "status": "completed",
+      "createdAt": 1779430528546,
+      "note": "John made a booking"
+    },
+    {
+      "id": "t3",
+      "title": "Wake up call",
+      "room": "201",
+      "status": "completed",
+      "createdAt": 1779427648546
+    },
+    {
+      "id": "task-1781441383813",
+      "title": "Address sensitive guest inquiry in Room 1234",
+      "room": "1234",
+      "status": "received",
+      "createdAt": 1781441383813,
+      "informedDept": "HOD",
+      "details": {
+        "note": "Guest Blig in Room 1234 requested booking of an escort/prostitute. Requires management escalation and professional refusal according to hotel policy.",
+        "autoCreated": true
+      }
+    },
+    {
+      "id": "task-1781441446316",
+      "title": "Book restaurant table for Room 1234",
+      "room": "1234",
+      "status": "received",
+      "createdAt": 1781441446316,
+      "informedDept": "Concierge",
+      "details": {
+        "note": "Guest Blig in Room 1234 has requested assistance with booking a table.",
+        "autoCreated": true
+      }
+    },
+    {
+      "id": "task-1781441900430",
+      "title": "Deliver extra towels to Room 1234",
+      "room": "1234",
+      "status": "received",
+      "createdAt": 1781441900430,
+      "informedDept": "Housekeeping",
+      "details": {
+        "note": "Guest Blig in room 1234 requested more towels.",
+        "autoCreated": true
+      }
+    }
+  ],
+  "staffLogons": [
+    {
+      "id": "logon-1779532554196-461",
+      "staffId": "default-ruan",
+      "name": "Ruan",
+      "role": "HOD",
+      "whatsapp": "+27815823018",
+      "timestamp": 1779532554196,
+      "dateFormatted": "May 23, 2026",
+      "timeFormatted": "10:35 AM",
+      "status": "Logged In",
+      "messageText": "Hi"
+    }
+  ],
+  "emergency": false,
+  "departments": [
+    "Housekeeping",
+    "Concierge",
+    "Spa",
+    "Butlers"
+  ],
+  "config": {
+    "opHoursLimitEnabled": true,
+    "logoUrl": "https://sandton-hotel.com/wp-content/uploads/2018/10/logo-1.png",
+    "feedbackUrl": "https://sandton-hotel.com/feedback",
+    "alertPopupBody": "Pool will be closed for maintenance today.",
+    "conciergeKb": "\nBreathtaking Views in the Heart of Sandton\nWelcome to @Sandton Hotel, a brand-new luxury hotel conveniently located on Benmore Road in Sandton, Johannesburg.\n\nLocated on the Northern edge of the Sandton CBD, we are within easy reach of the Sandton Gautrain Station, Benmore shopping centre, Nelson Mandela Square, Sandton City and the many corporate offices that make this the economic heart of Johannesburg.\n\n@Sandton Hotel offers a relaxing respite from the bustling streets outside, with a grand reception foyer welcoming guests inside and all the amenities you could need under one roof.\n\nOn the deck you’ll find our sparkling blue swimming pool, with a smaller child-friendly pool attached and a fully-equipped children’s play area nearby. The Pool Bar offers enticing views and a place to relax, unwind, and enjoy a refreshing cocktail or ice-cold beer. The elevated deck area provides privacy whilst enjoying the view of activities from the overlooked Piazza, whetting your appetite with high end eateries and coffee shops.\n\nFitness enthusiasts can enjoy the complimentary, well-equipped gym, allowing you to exercise without having to leave the hotel. At our luxurious @Spa, you can re-invigorate your body and soul and ease away stress, with many options available on the spa menu.\n\nGuests will also find an array of dining options within @Sandton Hotel, from an on-site @Deli with grab-and-go options to our Coffee Bar, Pool Bar, @Sandton Restaurant, Cigar Lounge and Tasting Room.\n\n@Sandton Hotel offers a comprehensive choice of business resources, including a state-of-the-art conference centre overlooking Benmore Road, with full length windows allowing natural light and an option to block out the room when required.  With a total capacity for 300 guests as one venue, the room can also be divided into three separate venues, all flowing onto the generous conference centre foyer and terrace.\n\nBoardroom options are available in four different venues and a 60-Seater auditorium  completes the generous conferring options. The CoWorx co-working space provides guests with another option for their working needs, creating an ideal venue for on-site business meetings and remote working.",
+    "alertBannerActive": true,
+    "opHoursMorning": "06:00 AM - 11:30 AM",
+    "opHoursNight": "06:00 PM - 11:00 PM",
+    "opHoursConstraint": "Strictly active",
+    "opHoursAfternoon": "12:00 PM - 05:00 PM",
+    "alertBannerText": "Happy Father's Day Dads! Dad!",
+    "hotelName": "Sandton Hotel",
+    "alertPopupActive": true,
+    "nightshift": false,
+    "alertPopupHeader": "Scheduled Maintenance"
+  },
+  "promotions": [
+    {
+      "paragraph": "Escape the demands of Sandton's financial district with our signature spa day retreat. Begin with a deep-tissue massage or personalised treatment at @Spa, then step into the boutique COCO Pilates Studio for a private or semi-private reformer session on our Allegro 2 Body Balance Reformers.",
+      "cta_text": "Reserve Wellness Package",
+      "cta_url": "/api/bookings/spa-wellness-package",
+      "id": "promo-1780993408260-0-378",
+      "title": "Sandton Spa Wellness Retreat & Pilates Package",
+      "image_url": "https://sandton-hotel.com/wp-content/uploads/2018/10/Sandton-Shoot-24-450x450.jpg"
+    },
+    {
+      "cta_text": "Book Pool Experience",
+      "cta_url": "/api/bookings/clubhouse-sunset",
+      "paragraph": "Ascend to the Clubhouse rooftop where our sparkling infinity pool overlooks the Sandton skyline. Enjoy tapas-style bites and handcrafted cocktails as the Johannesburg sun dips behind the Magaliesberg.",
+      "id": "promo-1780993408260-1-420",
+      "title": "Clubhouse Sunset Cocktails & Infinity Pool Experience",
+      "image_url": "https://images.unsplash.com/photo-1571896349842-33c89424de2d?q=80&w=2000"
+    },
+    {
+      "id": "promo-1780993408260-2-358",
+      "cta_text": "Reserve Penthouse Suite",
+      "cta_url": "/api/bookings/penthouse-suite",
+      "paragraph": "Indulge in an unrivalled stay in our Presidential Penthouse Suite on the 21st floor. Featuring panoramic north-facing views, a fully equipped private kitchen, and access to a private outdoor patio.",
+      "image_url": "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=80&w=2000",
+      "title": "Penthouse Suite Johannesburg Skyline Escape"
+    },
+    {
+      "id": "promo-1780993408260-3-563",
+      "paragraph": "Purpose-built for the Sandton business community. Your stay includes access to our fully kitted co-working space, uncapped high-speed Wi-Fi, in-room Nespresso, and full business centre access.",
+      "cta_url": "/api/bookings/business-traveller",
+      "cta_text": "Book Business Stay",
+      "title": "Business Traveller Stay & Work Package",
+      "image_url": "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=2000"
+    }
+  ],
+  "facilities": [
+    {
+      "description": "Full-service luxury spa offering deep-tissue massages, body treatments, facials, sauna, and access to COCO Pilates Studio. Aesthetic skin treatments available via onsite medical suites.",
+      "id": "fac-1780993408260-0-512",
+      "title": "@Spa by Sandton Hotel",
+      "image_url": "https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?q=80&w=2000",
+      "category": "Wellness"
+    },
+    {
+      "image_url": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=2000",
+      "title": "Sandton Hotel 24-Hour Fitness Centre",
+      "category": "Fitness",
+      "description": "Well-equipped fitness centre featuring cardiovascular and strength training equipment suitable for all fitness levels, accessible 24/7.",
+      "id": "fac-1780993408260-1-210"
+    },
+    {
+      "description": "Sparkling infinity pool with skyline views and a children's pool. Open daily 06:00 to 18:00. Adjacent bar serves refreshments.",
+      "id": "fac-1780993408260-2-34",
+      "title": "Infinity Pool & Clubhouse Rooftop Deck",
+      "image_url": "https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?q=80&w=2000",
+      "category": "Fitness"
+    },
+    {
+      "title": "COCO Pilates Studio",
+      "image_url": "https://images.unsplash.com/photo-1599901860904-17e6ed7083a0?q=80&w=2000",
+      "category": "Wellness",
+      "description": "Boutique reformer pilates studio inside @Spa with three Allegro 2 Body Balance Reformers for private and semi-private sessions.",
+      "id": "fac-1780993408260-3-861"
+    },
+    {
+      "category": "General",
+      "title": "Cigar Lounge & Single Malt Bar",
+      "image_url": "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?q=80&w=2000",
+      "description": "Sophisticated retreat featuring plush leather seating, premium imported cigars, and an expertly curated single malt whisky collection.",
+      "id": "fac-1780993408260-4-589"
+    },
+    {
+      "image_url": "https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=2000",
+      "title": "Benmore Deli & Liquor Store",
+      "category": "General",
+      "description": "On-site deli for grab-and-go sandwiches, smoothies, and freshly baked bread, paired with a curated liquor store.",
+      "id": "fac-1780993408260-5-222"
+    },
+    {
+      "description": "Fully kitted workspace with high-speed uncapped Wi-Fi, desktop workstations, printing facilities, and meeting room access.",
+      "id": "fac-1780993408260-6-402",
+      "image_url": "https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=2000",
+      "title": "Business Centre & Co-Working Space",
+      "category": "General"
+    },
+    {
+      "title": "@Sandton Medical Suites",
+      "image_url": "https://images.unsplash.com/photo-1516549655169-df83a0774514?q=80&w=2000",
+      "category": "Wellness",
+      "description": "Onsite medical facility offering General Practitioner services, aesthetic treatments, dental, and surgical procedures.",
+      "id": "fac-1780993408260-7-278"
+    },
+    {
+      "description": "Dedicated 24-hour team offering spa bookings, transport coordination, and airport transfers. Fluent in English, Afrikaans, Zulu, and Xhosa.",
+      "id": "fac-1780993408260-8-813",
+      "category": "General",
+      "image_url": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=2000",
+      "title": "Concierge Service"
+    },
+    {
+      "description": "Tranquil landscaped gardens providing a serene outdoor escape from the city center, perfect for walks or outdoor breakfasts.",
+      "id": "fac-1780993408260-9-429",
+      "category": "General",
+      "image_url": "https://images.unsplash.com/photo-1598522322563-0238e3e4148e?q=80&w=2000",
+      "title": "Lush Garden & Serene Grounds"
+    }
+  ],
+  "restaurants": [
+    {
+      "image_url": "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?q=80&w=2000",
+      "title": "@Sandton Restaurant",
+      "subsections": [
+        {
+          "id": "sub-1780993408261-0-0-89",
+          "title": "Daily Services",
+          "timings": [
+            {
+              "name": "Breakfast Buffet Weekdays",
+              "openTime": "06:30",
+              "closeTime": "10:00",
+              "id": "time-1780993408261-0-0-0"
+            },
+            {
+              "closeTime": "10:30",
+              "id": "time-1780993408261-0-0-1",
+              "name": "Breakfast Buffet Weekends",
+              "openTime": "07:00"
+            },
+            {
+              "name": "Lunch Service",
+              "openTime": "12:00",
+              "closeTime": "15:00",
+              "id": "time-1780993408261-0-0-2"
+            },
+            {
+              "name": "Dinner Service",
+              "openTime": "18:00",
+              "closeTime": "22:30",
+              "id": "time-1780993408261-0-0-3"
+            }
+          ]
+        }
+      ],
+      "cta_enabled": true,
+      "description": "Flagship fine-dining offering modern South African and international cuisine, grills, and house-made pastas in an elegant setting.",
+      "id": "rest-1780993408261-0-68",
+      "cta_text": "Reserve Restaurant Table",
+      "cta_url": "/api/bookings/sandton-restaurant"
+    },
+    {
+      "subsections": [
+        {
+          "title": "Operating Hours",
+          "timings": [
+            {
+              "id": "time-1780993408261-1-0-0",
+              "closeTime": "18:00",
+              "openTime": "12:00",
+              "name": "Afternoon Pool Bar"
+            },
+            {
+              "closeTime": "21:00",
+              "id": "time-1780993408261-1-0-1",
+              "name": "Sunset Sundowner Bar",
+              "openTime": "17:00"
+            },
+            {
+              "id": "time-1780993408261-1-0-2",
+              "closeTime": "22:00",
+              "openTime": "18:00",
+              "name": "Evening Tapas & Cocktails"
+            }
+          ],
+          "id": "sub-1780993408261-1-0-64"
+        }
+      ],
+      "title": "The Clubhouse Bar & Tapas Lounge",
+      "image_url": "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?q=80&w=2000",
+      "cta_enabled": true,
+      "cta_url": "/api/bookings/clubhouse",
+      "cta_text": "Book Clubhouse Table",
+      "description": "Vibrant rooftop social hub featuring panoramic city views, handcrafted cocktails, and tapas-style casual dining.",
+      "id": "rest-1780993408261-1-425"
+    },
+    {
+      "cta_enabled": false,
+      "title": "Pool Bar",
+      "image_url": "https://images.unsplash.com/photo-1563297316-e41785e6834d?q=80&w=2000",
+      "subsections": [
+        {
+          "title": "Daily Hours",
+          "timings": [
+            {
+              "openTime": "06:00",
+              "name": "Pool Bar Service",
+              "id": "time-1780993408261-2-0-0",
+              "closeTime": "18:00"
+            }
+          ],
+          "id": "sub-1780993408261-2-0-37"
+        }
+      ],
+      "cta_url": "",
+      "cta_text": "Walk-ins Only",
+      "id": "rest-1780993408261-2-858",
+      "description": "Casual poolside service offering cocktails, coffees, burgers, and light bites in a relaxed open-air setting."
+    },
+    {
+      "image_url": "https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=2000",
+      "subsections": [
+        {
+          "id": "sub-1780993408261-3-0-22",
+          "timings": [
+            {
+              "name": "Deli & Coffee Bar",
+              "openTime": "07:00",
+              "closeTime": "19:00",
+              "id": "time-1780993408261-3-0-0"
+            }
+          ],
+          "title": "Daily Hours"
+        }
+      ],
+      "title": "Benmore Deli & Cafe",
+      "cta_enabled": false,
+      "cta_url": "",
+      "cta_text": "Walk-ins Only",
+      "description": "Bright grab-and-go cafe offering artisan coffee, freshly prepared sandwiches, wraps, and baked pastries.",
+      "id": "rest-1780993408261-3-369"
+    }
+  ],
+  "recos": [
+    {
+      "image_url": "https://cdn.prod.rexby.com/image/ec9144a2ea654383b571bdbd06a4ea27?format=webp&width=1080&height=1350&quality=80",
+      "title": "Nelson Mandela Square",
+      "id": "reco-1",
+      "is_featured": true,
+      "cta_text": "More Info",
+      "cta_url": "https://www.google.com/maps/search/Nelson+Mandela+Square",
+      "paragraph": "Joburg's finest dining destination, situated in the heart of Sandton. Paying homage to one of the world's greatest men, our symbol of freedom and African pride."
+    },
+    {
+      "cta_url": "https://www.apartheidmuseum.org/",
+      "paragraph": "The Apartheid Museum opened in 2001 and is acknowledged as the pre-eminent museum in the world dealing with 20th century South Africa.",
+      "cta_text": "More Info",
+      "is_featured": true,
+      "id": "reco-2",
+      "image_url": "https://cdn.ventrata.com/image/upload/s--ngsie3fQ--/c_fill,dpr_2,q_30,w_900,f_webp,h_600/v1535365607/20120229-230128_deieev.webp",
+      "title": "Apartheid Museum"
+    }
+  ]
+}

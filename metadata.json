@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Conci by Recos",
+  "description": "Luxury guest concierge app with staff, admin, and recos backends. Features AI concierge, transfer booking, and curated recommendations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
