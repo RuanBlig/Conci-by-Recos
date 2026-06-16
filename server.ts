@@ -1390,8 +1390,26 @@ Please generate the next response as the "Recos Chat Assistant" (the Guest Assis
 
   // POST /api/emergency
   app.post("/api/emergency", (req, res) => {
-    const { emergency } = req.body;
+    const { emergency, actor, escalated } = req.body;
     emergencyMode = !!emergency;
+    if (!emergency && actor) {
+      console.log(`[SERVER] Emergency mode stopped by ${actor}. Escalated checked: ${escalated}`);
+      chatMessages.push({
+        role: "assistant",
+        content: `🚨 SYSTEM ALERT: Emergency lockdown protocol has been deactivated by: ${actor}. Escalation to local authorities was confirmed.`,
+        timestamp: new Date().toLocaleTimeString(),
+        senderName: "System",
+        roomNumber: "0"
+      });
+    } else if (emergency) {
+      chatMessages.push({
+        role: "assistant",
+        content: `🚨 SYSTEM ALERT: Emergency lockdown protocol has been activated! Central broadcast active on all panels.`,
+        timestamp: new Date().toLocaleTimeString(),
+        senderName: "System",
+        roomNumber: "0"
+      });
+    }
     saveToChatsDb();
     console.log("[SERVER] Emergency mode status changed:", emergencyMode);
     return res.json({ success: true, emergencyMode });
@@ -1533,6 +1551,19 @@ Please generate the next response as the "Recos Chat Assistant" (the Guest Assis
     saveToChatsDb();
     console.log("[SERVER] Staff user deleted successfully:", username);
     return res.json({ success: true, staffLogons });
+  });
+
+  // POST /api/admin/clear-db - clear all chats and tasks with ADMIN2025 password
+  app.post("/api/admin/clear-db", (req, res) => {
+    const { password } = req.body;
+    if (password !== "ADMIN2025") {
+      return res.status(401).json({ success: false, error: "Incorrect admin password." });
+    }
+    chatMessages.length = 0;
+    tasks.length = 0;
+    saveToChatsDb();
+    console.log("[SERVER] Database cleared of all chats and tasks.");
+    return res.json({ success: true, message: "Database cleared of all chats and tasks successfully." });
   });
 
   // CMS CUSTOMIZATIONS (Optional Backend Persisted Sinks)

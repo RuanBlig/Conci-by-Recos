@@ -2333,6 +2333,9 @@ function SimpleRecosConsole({
   const [wizardStep, setWizardStep] = useState<1 | 2>(1); // Step 1: Card/Button selection, Step 2: Form
   const [newType, setNewType] = useState<"card" | "button">("card");
   
+  // Custom Delete Confirm Dialog state
+  const [deleteConfirmItem, setDeleteConfirmItem] = useState<{ id: string; title: string } | null>(null);
+  
   // Form fields
   const [title, setTitle] = useState("");
   const [paragraph, setParagraph] = useState("");
@@ -2407,21 +2410,27 @@ function SimpleRecosConsole({
     }
   };
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  const handleDeleteClick = (id: string, title: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm("Are you sure you want to delete this recommendation?")) return;
+    setDeleteConfirmItem({ id, title });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmItem) return;
     try {
-      const res = await fetch(`/api/recos/${id}`, {
+      const res = await fetch(`/api/recos/${deleteConfirmItem.id}`, {
         method: "DELETE"
       });
       if (res.ok) {
         onRefresh();
-        if (selectedForMetrics?.id === id) {
+        if (selectedForMetrics?.id === deleteConfirmItem.id) {
           setSelectedForMetrics(null);
         }
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      setDeleteConfirmItem(null);
     }
   };
 
@@ -2556,7 +2565,7 @@ function SimpleRecosConsole({
                           <Edit2 size={13} />
                         </button>
                         <button
-                          onClick={(e) => handleDelete(reco.id, e)}
+                          onClick={(e) => handleDeleteClick(reco.id, reco.title, e)}
                           className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-white/5 rounded-lg transition-all"
                           title="Delete"
                         >
@@ -2836,6 +2845,43 @@ function SimpleRecosConsole({
           </div>
         </div>
       )}
+
+      {/* CUSTOM POPUP DELETE CONFIRM OVERLAY */}
+      {deleteConfirmItem && (
+        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4 z-[10000] animate-fade-in" id="recos-delete-confirm-popup">
+          <div className="bg-[#111] border border-slate-800 p-6 rounded-2xl max-w-sm w-full text-center space-y-4 shadow-2xl relative">
+            <div className="flex justify-center">
+              <div className="w-12 h-12 bg-rose-950/40 rounded-full border border-rose-500/30 flex items-center justify-center text-rose-400 animate-pulse">
+                <Trash2 size={24} />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <h4 className="font-serif font-bold text-sm text-slate-200">
+                Absolute Delete Element?
+              </h4>
+              <p className="text-xs text-slate-450 font-sans leading-relaxed text-slate-400">
+                Are you sure you want to permanently delete the recommendation <strong className="text-slate-200">"{deleteConfirmItem.title}"</strong>? This operation cannot be undone.
+              </p>
+            </div>
+            <div className="flex gap-3 justify-center pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmItem(null)}
+                className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 rounded-lg bg-red-650 hover:bg-red-600 text-white text-xs font-mono font-bold cursor-pointer transition-all"
+              >
+                CONFIRM DELETE
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2885,6 +2931,88 @@ function BackofficeConsole() {
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [saveIsLoading, setSaveIsLoading] = useState(false);
   const prevTaskIdsRef = useRef<Set<string> | null>(null);
+
+  // Emergency deactivation portal validation states
+  const [deactivateName, setDeactivateName] = useState("");
+  const [confirmEscalation, setConfirmEscalation] = useState(false);
+  const [isDeactivating, setIsDeactivating] = useState(false);
+
+  const playAlertSound = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+
+      // Double high-pitch chime pattern for warning notification
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(840, now);
+      gain1.gain.setValueAtTime(0.08, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.25);
+
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = "sine";
+      osc2.frequency.setValueAtTime(840, now + 0.28);
+      gain2.gain.setValueAtTime(0.08, now + 0.28);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.53);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.28);
+      osc2.stop(now + 0.53);
+    } catch (e) {
+      console.warn("Chime failed", e);
+    }
+  };
+
+  useEffect(() => {
+    if (emergencyMode) {
+      playAlertSound();
+      const timer = setInterval(() => {
+        playAlertSound();
+      }, 7000); // sound ding/chime every 7s
+      return () => clearInterval(timer);
+    }
+  }, [emergencyMode]);
+
+  const handleStopEmergency = async () => {
+    if (!deactivateName.trim()) {
+      alert("A responder name is required to stop the central emergency protocol.");
+      return;
+    }
+    if (!confirmEscalation) {
+      alert("You must confirm escalation to proceed.");
+      return;
+    }
+    setIsDeactivating(true);
+    try {
+      const res = await fetch("/api/emergency", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          emergency: false,
+          actor: deactivateName,
+          escalated: confirmEscalation
+        })
+      });
+      if (res.ok) {
+        setDeactivateName("");
+        setConfirmEscalation(false);
+        playChime();
+        await syncBackofficeData(true);
+      }
+    } catch (err) {
+      console.error("Failed to stop emergency lockdown:", err);
+    } finally {
+      setIsDeactivating(false);
+    }
+  };
 
   const playChime = () => {
     try {
@@ -3127,6 +3255,60 @@ function BackofficeConsole() {
 
   return (
     <div className="flex-1 flex flex-col bg-[#0d0d0d] min-h-screen text-slate-100 font-sans selection:bg-[#cca472]/30">
+      {/* CRITICAL EMERGENCY BANNER */}
+      {emergencyMode && (
+        <div className="bg-red-950/95 border-b border-red-500 text-white px-10 py-5 font-sans relative z-50 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 shadow-2xl animate-pulse">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-red-600 border border-red-400 flex items-center justify-center text-xl shrink-0 shadow-lg shadow-red-950/50">
+              🚨
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-3">
+                <span className="font-mono text-[10px] font-extrabold uppercase tracking-widest bg-red-800 text-white px-2.5 py-0.5 rounded">
+                  CRITICAL ALARM
+                </span>
+                <h2 className="font-serif font-extrabold text-sm tracking-wide text-red-500 uppercase">
+                  Active Central Hotel Emergency Protocol In Effect
+                </h2>
+              </div>
+              <p className="text-[11px] text-slate-300 font-sans max-w-2xl leading-relaxed">
+                Central broadcasts are currently push-notifying active guests. All systems are restricted to standby state. This alarm can <strong>only</strong> be deactivated below once escalation is confirmed and documented.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap lg:flex-nowrap items-center gap-4 bg-black/45 border border-red-900/40 p-4 rounded-2xl w-full xl:w-auto">
+            <div className="flex flex-wrap items-center gap-3">
+              <input
+                type="text"
+                value={deactivateName}
+                onChange={(e) => setDeactivateName(e.target.value)}
+                placeholder="Escalated to (Your Name)..."
+                className="bg-black/60 border border-red-800/60 focus:border-red-500 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none placeholder-slate-500 font-sans min-w-[200px]"
+              />
+              <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={confirmEscalation}
+                  onChange={(e) => setConfirmEscalation(e.target.checked)}
+                  className="w-4 h-4 accent-red-650 rounded bg-black border-red-800/60 cursor-pointer"
+                />
+                <span>I confirm I've escalated this matter</span>
+              </label>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleStopEmergency}
+              disabled={isDeactivating || !deactivateName.trim() || !confirmEscalation}
+              className="py-2.5 px-5 rounded-xl text-[11px] font-mono font-bold tracking-wider bg-red-600 hover:bg-red-500 disabled:opacity-40 disabled:hover:bg-red-650 disabled:cursor-not-allowed text-white transition-all shadow-md active:scale-95 cursor-pointer uppercase flex items-center justify-center min-w-[210px]"
+            >
+              {isDeactivating ? "Deactivating..." : "Deactivate Alarm Protocol"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Top Header Bar */}
       <header className="px-10 py-6 border-b border-white/[0.04] bg-[#0d0d0d] flex justify-between items-center select-none shrink-0">
         <h1 className="font-serif text-[32px] tracking-wide text-[#cca472] font-semibold leading-none">

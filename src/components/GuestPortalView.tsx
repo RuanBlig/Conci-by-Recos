@@ -492,12 +492,22 @@ export default function GuestPortalView() {
   };
 
   const quickQuestions = [
-    "What are the pool hours?",
-    "What are the spa treatments?",
-    "Tell me about the restaurants."
+    "Tell me about the restaurants.",
+    "Tell me about the spa treatments.",
+    "Things in Joburg"
   ];
 
   const handleSendQuickQuestion = async (q: string) => {
+    if (q === "Things in Joburg") {
+      setChatOpen(false);
+      setTimeout(() => {
+        const el = document.getElementById("discover-joburg-section");
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 300);
+      return;
+    }
     if (chatAwaitingResponse) return;
     setChatAwaitingResponse(true);
 
@@ -936,7 +946,7 @@ export default function GuestPortalView() {
           </div>
 
           {/* Local Discovery Recommendations: Discover Joburg styled as a horizontally scrollable container with 15px fonts */}
-          <div className="space-y-4 bg-transparent pt-3 text-center">
+          <div id="discover-joburg-section" className="space-y-4 bg-transparent pt-3 text-center scroll-mt-6">
             <div className="space-y-1.5 my-3 select-none">
               <h3 className="font-serif italic font-semibold text-xl text-white tracking-wide">
                 Discover Joburg
@@ -1818,7 +1828,7 @@ export default function GuestPortalView() {
                 animate={{ y: 0 }}
                 exit={{ y: "100%" }}
                 transition={{ type: "spring", damping: 25, stiffness: 220 }}
-                className="absolute inset-0 bg-[#121212] z-50 shadow-2xl flex flex-col justify-between overflow-hidden h-full rounded-none"
+                className="absolute top-[10%] bottom-0 left-0 right-0 bg-[#121212] z-50 shadow-2xl flex flex-col justify-between overflow-hidden rounded-t-3xl border-t border-white/10"
               >
                 {/* Header structure like image 3 */}
                 <header className="px-5 py-4.5 bg-white/[0.02] border-b border-white/10 flex items-center justify-between">

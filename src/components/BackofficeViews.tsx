@@ -1042,22 +1042,6 @@ export function TasksView({
   const [resolvingTaskId, setResolvingTaskId] = useState<string | null>(null);
   const [resolutionNoteInput, setResolutionNoteInput] = useState("");
 
-  const handleDeactivateEmergency = async () => {
-    if (!window.confirm("Are you sure you want to de-escalate and deactivate the active central emergency alarm protocol?")) return;
-    try {
-      const res = await fetch("/api/emergency", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ emergency: false })
-      });
-      if (res.ok) {
-        onRefresh();
-      }
-    } catch (err) {
-      console.error("Error deactivating emergency:", err);
-    }
-  };
-
   // Local state for date specific export log
   const getTodayString = (offsetDays = 0) => {
     const d = new Date();
@@ -1286,17 +1270,13 @@ export function TasksView({
                 <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
               </div>
               <p className="text-xs text-slate-300 leading-relaxed font-sans max-w-3xl">
-                The backoffice is currently operating under the central broadcast protocol. Emergency channels are broadcast to guest panels. Please verify security parameters, ensure critical tasks are prioritized, and coordinate directly with local emergency teams.
+                The backoffice is currently operating under the central broadcast protocol. Emergency channels are broadcast to guest panels. Please verify security parameters, ensure critical tasks are prioritized, and coordinate directly with local emergency teams. Use the central validation panel at the top of the console to stand down the alarm.
               </p>
             </div>
           </div>
-          <button
-            onClick={handleDeactivateEmergency}
-            className="shrink-0 bg-red-600 hover:bg-red-500 text-white font-mono font-extrabold text-[11px] px-5 py-2.5 rounded-lg tracking-wider uppercase active:scale-95 transition-all cursor-pointer border border-red-700 shadow-md flex items-center gap-1.5"
-            title="De-escalate and de-activate the central alarm"
-          >
-            Deactivate Broadcast Alarm
-          </button>
+          <div className="text-[10px] bg-red-950/60 font-mono text-red-400 border border-red-900/40 px-3 py-2 rounded-lg max-w-xs shrink-0 select-none text-center">
+            ⚠️ DEACTIVATION SECURED: Enter name & confirm escalation in the banner at the top of this page to deactivate.
+          </div>
         </div>
       )}
 
@@ -2702,6 +2682,49 @@ export function StaffRegistryView({
 
   const [revealedPasswords, setRevealedPasswords] = useState<Record<string, boolean>>({});
 
+  const [clearPassword, setClearPassword] = useState("");
+  const [clearLoading, setClearLoading] = useState(false);
+  const [clearStatus, setClearStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const [showConfirmButton, setShowConfirmButton] = useState(false);
+
+  const startClearDbFlow = () => {
+    if (!clearPassword) {
+      setClearStatus({ success: false, message: "Please enter the admin password first." });
+      return;
+    }
+    if (clearPassword !== "ADMIN2025") {
+      setClearStatus({ success: false, message: "Incorrect password." });
+      return;
+    }
+    setClearStatus(null);
+    setShowConfirmButton(true);
+  };
+
+  const handleClearDb = async () => {
+    setClearLoading(true);
+    setClearStatus(null);
+    try {
+      const res = await fetch("/api/admin/clear-db", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: clearPassword }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setClearStatus({ success: true, message: "Purge complete! All active chats and tasks have been completely cleared." });
+        setClearPassword("");
+        setShowConfirmButton(false);
+        onRefresh();
+      } else {
+        setClearStatus({ success: false, message: data.error || "Execution failed." });
+      }
+    } catch (err: any) {
+      setClearStatus({ success: false, message: err.message || "Network request failed." });
+    } finally {
+      setClearLoading(false);
+    }
+  };
+
   const handleOpenModal = (item?: any) => {
     setEditItem(item || null);
     setSName(item ? item.name : "");
@@ -2873,6 +2896,59 @@ export function StaffRegistryView({
           </div>
         </div>
       )}
+
+      {/* Database Purge Cleanup Tool */}
+      <div className="bg-rose-950/10 border border-rose-900/35 rounded-xl p-4 mt-6 text-left space-y-3">
+        <div className="space-y-0.5">
+          <h5 className="font-serif font-bold text-xs text-rose-400 uppercase tracking-wider">
+            Database Cleanse & Purge System
+          </h5>
+          <p className="text-[11px] text-slate-400 font-sans leading-relaxed">
+            Wipe all concierge chats and staff tasks to start from scratch.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            type="password"
+            value={clearPassword}
+            onChange={(e) => setClearPassword(e.target.value)}
+            placeholder="Enter password..."
+            className="bg-black/40 border border-slate-800 focus:border-rose-500 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none font-sans max-w-xs"
+          />
+          {!showConfirmButton ? (
+            <button
+              type="button"
+              onClick={startClearDbFlow}
+              className="bg-rose-900/80 hover:bg-rose-805 text-rose-100 font-mono text-[10px] uppercase tracking-wider font-bold px-4 py-2 rounded-lg transition-all border border-rose-800/40 cursor-pointer"
+            >
+              Wipe Concierge Chats & Tasks
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleClearDb}
+                disabled={clearLoading}
+                className="bg-red-650 hover:bg-red-600 text-white font-mono text-[10px] uppercase tracking-wider font-extrabold px-4 py-2 rounded-lg transition-all border border-red-500 cursor-pointer animate-pulse"
+              >
+                {clearLoading ? "Purging..." : "⚠️ CONFIRM DELETE (IRREVERSIBLE)"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowConfirmButton(false)}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] px-3 py-2 rounded-lg cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
+        {clearStatus && (
+          <p className={`text-[10px] font-mono ${clearStatus.success ? "text-emerald-400" : "text-rose-400"}`}>
+            {clearStatus.message}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
@@ -2896,9 +2972,11 @@ export function AlertsControlView({
 
   const handleToggleEmergency = async () => {
     const nextState = !emergencyMode;
-    const msg = nextState 
-      ? "ATTENTION! Activating Emergency Mode will trigger notifications to all recipients. Proceed?" 
-      : "Deactivate Emergency Alarm Mode?";
+    if (!nextState) {
+      alert("Emergency deactivation is secured. Please use the central validation banner at the top of the screen (by entering your name and confirming escalation) to securely deactivate the central alarm.");
+      return;
+    }
+    const msg = "ATTENTION! Activating Emergency Mode will trigger notifications to all recipients. Proceed?";
     if (!window.confirm(msg)) return;
 
     try {
@@ -3154,15 +3232,14 @@ export function GeneralSettingsView({
   const [dateFrom, setDateFrom] = useState(getTodayString(-7));
   const [dateTo, setDateTo] = useState(getTodayString(0));
 
-  const downloadFeedbackCsv = () => {
-    const headers = ["Feedback ID", "Room Number", "Guest Name", "Rating", "Text", "Timestamp"];
-    const rows = feedbacks.map(f => [
-      f.id || "",
-      f.roomNumber || "",
-      f.guestName || "",
-      f.rating || "",
-      f.text || "",
-      f.timestamp ? new Date(f.timestamp).toISOString() : ""
+  const downloadChatLogsCsv = () => {
+    const headers = ["Timestamp", "Room Number", "Role", "Sender Name", "Message/Content"];
+    const rows = chatMessages.map(msg => [
+      msg.timestamp ? (new Date(msg.timestamp).toString() !== "Invalid Date" ? new Date(msg.timestamp).toISOString() : msg.timestamp) : "",
+      msg.roomNumber || "",
+      msg.role || "",
+      msg.senderName || "",
+      msg.content || ""
     ]);
     const csvString = [
       headers.join(","),
@@ -3172,41 +3249,7 @@ export function GeneralSettingsView({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `sandton_feedback_logs_${getTodayString()}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const downloadChatLogsJson = () => {
-    const dataStr = JSON.stringify(chatMessages, null, 2);
-    const blob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `sandton_chat_logs_${getTodayString()}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const downloadRecoInteractionsCsv = () => {
-    const headers = ["Interaction ID", "Room Key", "Type", "Reco ID", "Reco Title", "Timestamp"];
-    const rows = recoInteractions.map(ri => [
-      ri.id || "",
-      ri.roomKey || ri.roomNumber || "",
-      ri.type || "",
-      ri.recoId || "",
-      ri.recoTitle || "",
-      ri.timestamp ? new Date(ri.timestamp).toISOString() : ""
-    ]);
-    const csvString = [
-      headers.join(","),
-      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))
-    ].join("\r\n");
-    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `sandton_reco_interaction_logs_${getTodayString()}.csv`;
+    link.download = `sandton_chat_logs_${getTodayString()}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -3766,223 +3809,6 @@ export function GeneralSettingsView({
           <span>Query result size: {filteredTasks.length} matches</span>
           <span>System TZ: UTC</span>
         </div>
-      </div>
-
-      {/* COMPREHENSIVE LOGS & TELEMETRY EXTRACTION */}
-      <div className="bg-black/35 border border-slate-800 rounded-xl p-6 mt-8 space-y-5 text-left">
-        <div className="pb-3 border-b border-slate-800">
-          <h4 className="font-serif text-base tracking-wider text-amber-500 font-semibold flex items-center gap-2">
-            <Download size={18} className="text-amber-500 animate-pulse" /> Advanced administrative logs & backup extraction
-          </h4>
-          <p className="text-[11px] text-slate-400 font-sans mt-0.5">
-            Download active runtime state databases, chat memory loops, guest feedback submissions, and system diagnostic telemetry.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          
-          {/* Card 1: Chat Message Logs */}
-          <div className="bg-slate-900/40 border border-slate-800/80 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-slate-700/80 transition-all">
-            <div className="space-y-1">
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] font-mono text-amber-500 font-bold">Room chats</span>
-                <span className="font-mono text-[10px] bg-slate-950 px-2 py-0.5 rounded border border-slate-800 text-slate-400">
-                  {chatMessages.length} Messages
-                </span>
-              </div>
-              <h5 className="font-serif text-xs font-bold text-slate-200 tracking-wide">Standard dialogue logs</h5>
-              <p className="text-[11px] text-slate-400 font-sans leading-relaxed">
-                Contains complete logs of guest inquiries, concierge assistant replies, and timestamps grouped chronologically with associated rooms.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={downloadChatLogsJson}
-              className="w-full mt-2 py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700/80 text-white font-mono text-[10px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border border-slate-755"
-            >
-              <Download size={12} /> Download chat_logs.json
-            </button>
-          </div>
-
-          {/* Card 2: Feedback Experiences */}
-          <div className="bg-slate-900/40 border border-slate-800/80 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-slate-700/80 transition-all">
-            <div className="space-y-1">
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] font-mono text-emerald-500 font-bold">Experience feedback</span>
-                <span className="font-mono text-[10px] bg-slate-950 px-2 py-0.5 rounded border border-slate-800 text-slate-400">
-                  {feedbacks.length} Submissions
-                </span>
-              </div>
-              <h5 className="font-serif text-xs font-bold text-slate-200 tracking-wide">Guest feedback logs</h5>
-              <p className="text-[11px] text-slate-400 font-sans leading-relaxed">
-                Includes score ratings (1-10 scale), text suggestions, names of signed-in checked-in guests, and historical timestamps.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={downloadFeedbackCsv}
-              className="w-full mt-2 py-2 px-3 rounded-lg bg-emerald-950/40 hover:bg-emerald-900/40 text-emerald-400 font-mono text-[10px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border border-emerald-900/30"
-            >
-              <Download size={12} /> Download feedback.csv
-            </button>
-          </div>
-
-          {/* Card 3: Recommendations Click-stream Interaction Logs */}
-          <div className="bg-slate-900/40 border border-slate-800/80 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-slate-700/80 transition-all">
-            <div className="space-y-1">
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] font-mono text-purple-400 font-bold">Offer conversion</span>
-                <span className="font-mono text-[10px] bg-slate-950 px-2 py-0.5 rounded border border-slate-800 text-slate-400">
-                  {recoInteractions.length} Events
-                </span>
-              </div>
-              <h5 className="font-serif text-xs font-bold text-slate-200 tracking-wide">Recommendation audits</h5>
-              <p className="text-[11px] text-slate-400 font-sans leading-relaxed">
-                Clickstream tracking of guest promotion responses, category impressions, dining clicks, bookings, and interactive alerts.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={downloadRecoInteractionsCsv}
-              className="w-full mt-2 py-2 px-3 rounded-lg bg-purple-950/40 hover:bg-purple-900/40 text-purple-350 font-mono text-[10px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border border-purple-900/30"
-            >
-              <Download size={12} /> Download telemetry.csv
-            </button>
-          </div>
-
-        </div>
-
-        {/* Master Database State Backup Panel */}
-        <div className="bg-gradient-to-r from-amber-950/20 to-slate-950/40 border border-amber-900/20 rounded-xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-2">
-          <div className="space-y-1 max-w-xl">
-            <h5 className="font-serif text-sm font-bold text-amber-400 tracking-wide flex items-center gap-1.5 text-left">
-              <span className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-ping"></span> Full system diagnostic database backup
-            </h5>
-            <p className="text-[11px] text-slate-350 font-sans leading-relaxed text-left">
-              Generate a single point-in-time consolidated JSON backup package containing all master configuration states, active room structures, historic butler service tasks, chat communication registers, and diagnostic telemetry in a single structured schema file.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={downloadFullBackupJson}
-            className="w-full sm:w-auto py-3 px-6 rounded-xl bg-gradient-to-r from-amber-500 to-[#E6C687] hover:from-amber-400 hover:to-[#f0d49f] text-slate-950 font-mono text-[11px] font-extrabold transition shadow-lg transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 cursor-pointer flex-shrink-0"
-          >
-            <Download size={14} /> Download complete_state.json
-          </button>
-        </div>
-
-        {/* Supabase Central Datastore Diagnostics Panel */}
-        <div className="bg-black/45 border border-slate-800 rounded-xl p-6 mt-8 space-y-4 text-left">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-3 border-b border-slate-800 gap-3">
-            <div className="space-y-0.5">
-              <h4 className="font-serif text-base tracking-wider text-amber-500 font-semibold flex items-center gap-2">
-                <Database size={18} className="text-amber-500" /> Supabase central datastore API check
-              </h4>
-              <p className="text-[11px] text-slate-400 font-sans">
-                Diagnose active client connections, API handshake credentials, and Postgrest DB engine availability.
-              </p>
-            </div>
-            
-            <button
-              type="button"
-              disabled={testLoading}
-              onClick={testSupabaseConnectionAction}
-              className="bg-slate-900 hover:bg-slate-800 text-amber-400 border border-slate-800 px-4 py-2 rounded-lg text-xs font-mono tracking-wider transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer"
-            >
-              <RefreshCw size={12} className={testLoading ? "animate-spin text-amber-400" : ""} />
-              {testLoading ? "Running Handshakes..." : "Test Supabase Connection"}
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 bg-slate-950/40 p-4 rounded-lg border border-slate-900 text-xs font-mono">
-            <div className="space-y-1">
-              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Client SDK Setup</span>
-              <div className="flex items-center gap-1.5 mt-1">
-                <span className={`w-2 h-2 rounded-full ${isSupabaseConfigured() ? "bg-emerald-500" : "bg-rose-500"}`}></span>
-                <span className={isSupabaseConfigured() ? "text-emerald-400" : "text-rose-400"}>
-                  {isSupabaseConfigured() ? "SDK Configured & Loaded" : "Variables Missing"}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {testResult && (
-            <div className={`mt-4 border rounded-xl overflow-hidden animate-fade-in ${
-              testResult.success 
-                ? "border-emerald-900/30 bg-emerald-950/10" 
-                : "border-rose-900/30 bg-rose-950/10"
-            }`}>
-              {/* Header result line */}
-              <div className={`p-4 flex items-start gap-3 border-b ${
-                testResult.success 
-                  ? "border-emerald-900/30 bg-emerald-950/20 text-emerald-400" 
-                  : "border-rose-900/30 bg-rose-950/20 text-rose-400"
-              }`}>
-                {testResult.success ? <CheckCircle2 size={18} className="flex-shrink-0 mt-0.5" /> : <AlertTriangle size={18} className="flex-shrink-0 mt-0.5" />}
-                <div className="space-y-1">
-                  <span className="font-serif font-bold text-sm">
-                    {testResult.success ? "Verification Successful" : "Handshake Failure Detected"}
-                  </span>
-                  <p className="font-sans text-[11px] leading-relaxed opacity-90">{testResult.details}</p>
-                </div>
-              </div>
-
-              {/* Technical Breakdowns */}
-              <div className="p-4 space-y-4 text-xs font-mono">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Auth Handshake status */}
-                  <div className="bg-black/30 border border-slate-850 p-3.5 rounded-lg space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">1. GoTrue Auth Engine</span>
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
-                        testResult.authStatus === "Connected" ? "bg-emerald-950/60 text-emerald-400 border border-emerald-900/25" : "bg-rose-950/60 text-rose-400 border border-rose-900/25"
-                      }`}>{testResult.authStatus}</span>
-                    </div>
-                    <p className="text-[11px] text-slate-300 leading-relaxed font-sans">{testResult.authDetails}</p>
-                  </div>
-
-                  {/* DB / Postgrest Handshake status */}
-                  <div className="bg-black/30 border border-slate-850 p-3.5 rounded-lg space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">2. Postgrest Database API</span>
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
-                        testResult.dbStatus === "Connected" ? "bg-emerald-950/60 text-emerald-400 border border-emerald-900/25" : "bg-amber-950/60 text-amber-400 border border-amber-900/25"
-                      }`}>{testResult.dbStatus}</span>
-                    </div>
-                    <p className="text-[11px] text-slate-300 leading-relaxed font-sans">{testResult.dbDetails}</p>
-                  </div>
-                </div>
-
-                {/* Additional deep analysis advice */}
-                {testResult.postgrestDetails && (
-                  <div className="bg-slate-900/30 border border-slate-800/80 p-3 rounded-lg text-slate-400 leading-relaxed font-sans text-[11px] flex gap-2">
-                    <span className="text-amber-500 font-mono text-xs font-bold flex-shrink-0">💡 Advice:</span>
-                    <p>{testResult.postgrestDetails}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {!isSupabaseConfigured() && (
-            <div className="bg-amber-950/10 border border-amber-900/20 p-4 rounded-xl space-y-2 text-slate-400 text-[11px] font-sans leading-relaxed">
-              <span className="font-serif font-bold text-amber-400 text-xs flex items-center gap-1.5 leading-none mb-1">
-                <AlertCircle size={14} /> Quick Setup Guide & Environmental Variables
-              </span>
-              <p>
-                To enable global data replication or use Supabase as your primary datastore:
-              </p>
-              <ol className="list-decimal list-inside space-y-1 text-slate-300 pl-1 mt-1 font-mono text-[10px]">
-                <li>Create or log into your project at <a href="https://supabase.com" target="_blank" className="text-amber-400 underline">supabase.com</a>.</li>
-                <li>Go to <strong>Settings &gt; API</strong> and copy your <strong>Project URL</strong> and <strong>Anon Key</strong>.</li>
-                <li>Add them as secrets or define them in your environment settings using keys:</li>
-                <li className="pl-4 text-amber-300">VITE_SUPABASE_URL = "https://your-project.supabase.co"</li>
-                <li className="pl-4 text-amber-300">VITE_SUPABASE_ANON_KEY = "your-anon-key..."</li>
-              </ol>
-            </div>
-          )}
-        </div>
-
       </div>
     </div>
   );
