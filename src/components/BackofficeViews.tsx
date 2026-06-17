@@ -30,7 +30,9 @@ import {
   Check,
   FileText,
   Globe,
-  Database
+  Database,
+  ArrowUp,
+  ArrowDown
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -700,6 +702,7 @@ export function RecosAnalyticsView({
   const totalImpressions = filteredLogs.filter((l) => l.type === "impression").length;
   const totalClicks = filteredLogs.filter((l) => l.type === "click").length;
   const totalConfirmed = filteredLogs.filter((l) => l.type === "confirmed").length;
+  const totalImageClicks = filteredLogs.filter((l) => l.type === "image_click" || l.type === "image-click").length;
   const conversionRate = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(1) : "0";
 
   // Recharts structured mapping data
@@ -707,20 +710,22 @@ export function RecosAnalyticsView({
     return recos.map((reco) => {
       const imps = filteredLogs.filter((l) => l.recoId === reco.id && l.type === "impression").length;
       const clicks = filteredLogs.filter((l) => l.recoId === reco.id && l.type === "click").length;
+      const imgClicks = filteredLogs.filter((l) => l.recoId === reco.id && (l.type === "image_click" || l.type === "image-click")).length;
       return {
         name: reco.title.split(":")[1]?.trim() || reco.title,
         Impressions: imps,
-        Clicks: clicks
+        Clicks: clicks,
+        "Image Clicks": imgClicks
       };
     });
   }, [recos, filteredLogs]);
 
   // Client-side CSV download compiler
   const handleCsvExport = () => {
-    let csvStr = "Title,Impressions,Clicks,Conversion Rate %\n";
+    let csvStr = "Title,Impressions,Clicks,Image Clicks,Conversion Rate %\n";
     chartData.forEach((row) => {
       const rate = row.Impressions > 0 ? ((row.Clicks / row.Impressions) * 100).toFixed(1) + "%" : "0%";
-      csvStr += `"${row.name}",${row.Impressions},${row.Clicks},${rate}\n`;
+      csvStr += `"${row.name}",${row.Impressions},${row.Clicks},${row["Image Clicks"]},${rate}\n`;
     });
     const encoded = encodeURI("data:text/csv;charset=utf-8," + csvStr);
     const a = document.createElement("a");
@@ -765,7 +770,7 @@ export function RecosAnalyticsView({
       </div>
 
       {/* Metrics Carousel of Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-slate-950/65 border border-slate-800/80 rounded-xl p-4 flex flex-col space-y-1 shadow-sm text-center">
           <span className="text-[10px] font-mono text-slate-500">Total impressions</span>
           <p className="text-2xl font-serif text-slate-100 font-bold">{totalImpressions}</p>
@@ -773,6 +778,10 @@ export function RecosAnalyticsView({
         <div className="bg-slate-950/65 border border-slate-800/80 rounded-xl p-4 flex flex-col space-y-1 shadow-sm text-center">
           <span className="text-[10px] font-mono text-slate-500">Recommendation clicks</span>
           <p className="text-2xl font-serif text-amber-400 font-bold">{totalClicks}</p>
+        </div>
+        <div className="bg-slate-950/65 border border-slate-800/80 rounded-xl p-4 flex flex-col space-y-1 shadow-sm text-center">
+          <span className="text-[10px] font-mono text-slate-500">Image clicks</span>
+          <p className="text-2xl font-serif text-teal-400 font-bold">{totalImageClicks}</p>
         </div>
         <div className="bg-slate-950/65 border border-slate-800/80 rounded-xl p-4 flex flex-col space-y-1 shadow-sm text-center">
           <span className="text-[10px] font-mono text-slate-500">Cta bookings confirmed</span>
@@ -787,7 +796,7 @@ export function RecosAnalyticsView({
       {/* Side-by-Side BarChart visualization */}
       <div className="bg-black/20 border border-slate-800 rounded-xl p-6">
         <h4 className="text-xs tracking-wider text-slate-400 font-mono font-bold pb-3 border-b border-slate-800/50 mb-5">
-          📈 Recommendations engagement: Clicks vs. impressions
+          📈 Recommendations engagement: Impressions, Clicks & Image Clicks
         </h4>
         <div className="w-full h-[320px] text-xs font-mono">
           <ResponsiveContainer width="100%" height="100%">
@@ -803,8 +812,9 @@ export function RecosAnalyticsView({
                 }}
               />
               <Legend />
-              <Bar dataKey="Impressions" fill="#64748B" barSize={25} radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Clicks" fill="#F59E0B" barSize={25} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Impressions" fill="#64748B" barSize={18} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Clicks" fill="#F59E0B" barSize={18} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Image Clicks" fill="#14B8A6" barSize={18} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -1759,6 +1769,22 @@ export function CmsView({
     setDeleteConfirmItem({ id: itemId, title: itemTitle });
   };
 
+  // Reorder/move recommendation cards
+  const handleMove = async (id: string, direction: "up" | "down") => {
+    try {
+      const res = await fetch(`/api/recos/${id}/move`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ direction })
+      });
+      if (res.ok) {
+        onRefresh();
+      }
+    } catch (err) {
+      console.error("Failed to reorder recommendation:", err);
+    }
+  };
+
   // Execute actual CMS absolute deletion backend request
   const handleConfirmDelete = async () => {
     if (!deleteConfirmItem) return;
@@ -1969,7 +1995,7 @@ export function CmsView({
             ))}
 
           {subTab === "recos" &&
-            recos.map((reco: any) => (
+            recos.map((reco: any, idx: number) => (
               <div key={reco.id} className="bg-black/35 border border-slate-800/80 rounded-xl overflow-hidden flex flex-col justify-between p-4 space-y-3">
                 <div className="space-y-2">
                   <img src={reco.image_url} alt="" className="w-full h-32 object-cover rounded" />
@@ -1992,6 +2018,22 @@ export function CmsView({
                 <div className="flex justify-between items-center pt-2 border-t border-slate-800/40">
                   <span className="text-[10px] font-mono text-amber-500">{reco.cta_text || "More Info"}</span>
                   <div className="flex space-x-1.5">
+                    <button
+                      onClick={() => handleMove(reco.id, "up")}
+                      disabled={idx === 0}
+                      className="p-1 px-2 text-slate-400 hover:text-[#cca472] border border-slate-800 hover:border-[#cca472]/40 rounded transition-all cursor-pointer disabled:opacity-20 disabled:hover:text-slate-400 disabled:hover:border-slate-800"
+                      title="Move Up"
+                    >
+                      <ArrowUp size={12} />
+                    </button>
+                    <button
+                      onClick={() => handleMove(reco.id, "down")}
+                      disabled={idx === recos.length - 1}
+                      className="p-1 px-2 text-slate-400 hover:text-[#cca472] border border-slate-800 hover:border-[#cca472]/40 rounded transition-all cursor-pointer disabled:opacity-20 disabled:hover:text-slate-400 disabled:hover:border-slate-800"
+                      title="Move Down"
+                    >
+                      <ArrowDown size={12} />
+                    </button>
                     <button onClick={() => handleOpenModal(reco)} className="p-1 px-2 text-slate-400 hover:text-amber-400 border border-slate-800 hover:border-amber-400/40 rounded transition-all cursor-pointer">
                       <Edit2 size={12} />
                     </button>

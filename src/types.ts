@@ -3,7 +3,7 @@ export interface GuestSession {
   roomNumber: string;
 }
 
-export type Role = "guest" | "staff" | "manager" | "admin" | "recos" | null;
+export type Role = "guest" | "staff" | "manager" | "admin" | "recos" | "recos_partner" | null;
 
 export interface Task {
   id: string;

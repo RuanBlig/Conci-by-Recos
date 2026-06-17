@@ -40,7 +40,12 @@ import {
   Flag,
   ShieldAlert,
   FolderOpen,
-  ExternalLink
+  ExternalLink,
+  ArrowUp,
+  ArrowDown,
+  Coins,
+  Percent,
+  Calculator
 } from "lucide-react";
 import { GuestSession, Role } from "./types";
 import { cn } from "./lib/utils";
@@ -83,7 +88,8 @@ const TAB_LIST = [
   "Hub Directory",
   "Staff Registry",
   "Settings",
-  "Recos"
+  "Create Ad",
+  "CPC Calculator"
 ] as const;
 
 type Tab = typeof TAB_LIST[number];
@@ -93,7 +99,8 @@ const PERMISSIONS: Record<Exclude<Role, null | "guest">, Tab[]> = {
   staff: ["Tasks"],
   manager: ["Concierge", "Tasks", "Alerts & Notifications", "Transfers"],
   admin: ["Concierge", "Tasks", "Alerts & Notifications", "Transfers", "Hub Directory", "Staff Registry", "Settings"],
-  recos: ["Recos"]
+  recos: ["Create Ad", "CPC Calculator"],
+  recos_partner: ["Create Ad", "CPC Calculator"]
 };
 
 // Role-based theme configuration icon mapped helpers
@@ -105,7 +112,8 @@ const TAB_ICONS: Record<Tab, React.ComponentType<any>> = {
   "Hub Directory": FolderOpen,
   "Staff Registry": User,
   "Settings": Settings,
-  "Recos": Star
+  "Create Ad": Star,
+  "CPC Calculator": Calculator
 };
 
 // React Context for role management
@@ -233,7 +241,7 @@ function MainApp() {
           </motion.div>
         )}
 
-        {(role === "staff" || role === "manager" || role === "admin" || role === "recos") && (
+        {(role === "staff" || role === "manager" || role === "admin" || role === "recos" || role === "recos_partner") && (
           <motion.div
             key="backoffice"
             initial={{ opacity: 0 }}
@@ -282,6 +290,7 @@ function CheckInScreen() {
   const [adminUsername, setAdminUsername] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
   const [adminCategory, setAdminCategory] = useState<"Staff" | "Admin" | "Back-office" | "Recos">("Admin");
+  const [recosSubMode, setRecosSubMode] = useState<"admin" | "partner">("admin");
   const [adminError, setAdminError] = useState("");
   const [adminLoading, setAdminLoading] = useState(false);
 
@@ -359,6 +368,21 @@ function CheckInScreen() {
 
     const normalizedU = u.toUpperCase();
     const normalizedP = p.toUpperCase();
+
+    // Partner/Company Sign-In validation
+    if (adminCategory === "Recos" && recosSubMode === "partner") {
+      if (normalizedP === "PASSWORDABC" || normalizedP === "PARTNER2025" || p === BACKDOOR_CONFIG.RECOS_PASSKEY || normalizedP === "ADMIN2025" || normalizedP === "RUAN") {
+        setStaffName(u); // Company name is stored in staffName
+        setRole("recos_partner");
+        setShowAdminModal(false);
+        setAdminUsername("");
+        setAdminPassword("");
+        return;
+      } else {
+        setAdminError("Invalid partner passkey. Try using 'passwordabc'.");
+        return;
+      }
+    }
 
     // 1. Direct local credential configurations requested:
     if (adminCategory === "Recos") {
@@ -664,7 +688,7 @@ function CheckInScreen() {
                     </label>
                     <input
                       type="text"
-                      placeholder="Username"
+                      placeholder={adminCategory === "Recos" && recosSubMode === "partner" ? "Company / brand name (e.g. Marble)" : "Username"}
                       value={adminUsername}
                       onChange={(e) => {
                         setAdminUsername(e.target.value);
@@ -678,7 +702,7 @@ function CheckInScreen() {
                   <div className="space-y-1">
                     <input
                       type="password"
-                      placeholder="Password"
+                      placeholder={adminCategory === "Recos" && recosSubMode === "partner" ? "Passkey (use passwordabc)" : "Password"}
                       value={adminPassword}
                       onChange={(e) => {
                         setAdminPassword(e.target.value);
@@ -688,6 +712,11 @@ function CheckInScreen() {
                       className="w-full bg-[#0d0d0d] hover:bg-[#121212] border border-slate-900 text-white placeholder-stone-600 py-3.5 px-5 rounded-2xl focus:outline-none focus:border-[#cca472]/45 text-sm transition-colors duration-150"
                       required
                     />
+                    {adminCategory === "Recos" && recosSubMode === "partner" && (
+                      <p className="text-[9.5px] text-[#cca472]/70 font-mono pl-1 py-1 leading-normal">
+                        💡 Log in with any Company Name. Passkey: <span className="text-[#cca472] font-bold">passwordabc</span>
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -721,6 +750,47 @@ function CheckInScreen() {
                     })}
                   </div>
                 </div>
+
+                {/* RECOS Sub-mode Selector (Admin vs partner) */}
+                {adminCategory === "Recos" && (
+                  <div className="space-y-1.5 text-left animate-fade-in">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-[#cca472]/65 pl-1 font-mono">
+                      RECOS LOG-IN TYPE
+                    </label>
+                    <div className="grid grid-cols-2 gap-1 p-1 bg-[#050505] border border-slate-900/80 rounded-xl">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRecosSubMode("admin");
+                          setAdminError("");
+                        }}
+                        className={cn(
+                          "py-1.5 text-[9px] uppercase tracking-wider font-extrabold font-mono rounded-lg transition-all cursor-pointer text-center",
+                          recosSubMode === "admin"
+                            ? "bg-[#cca472] text-slate-950 shadow-md"
+                            : "text-slate-400 hover:text-white"
+                        )}
+                      >
+                        ADMIN
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRecosSubMode("partner");
+                          setAdminError("");
+                        }}
+                        className={cn(
+                          "py-1.5 text-[9px] uppercase tracking-wider font-extrabold font-mono rounded-lg transition-all cursor-pointer text-center",
+                          recosSubMode === "partner"
+                            ? "bg-[#cca472] text-slate-950 shadow-md"
+                            : "text-slate-400 hover:text-white"
+                        )}
+                      >
+                        Company / Partner
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {adminError && (
                   <p className="text-[10px] font-mono font-extrabold text-red-500 text-center uppercase tracking-wider bg-red-950/20 border border-red-900/25 py-2.5 rounded-xl">
@@ -2332,6 +2402,15 @@ function SimpleRecosConsole({
   const [showAddModal, setShowAddModal] = useState(false);
   const [wizardStep, setWizardStep] = useState<1 | 2>(1); // Step 1: Card/Button selection, Step 2: Form
   const [newType, setNewType] = useState<"card" | "button">("card");
+
+  // Split into active and pending approvals from partners
+  const pendingPartnerRecos = useMemo(() => {
+    return recos.filter((reco: any) => reco.status === "pending_approval");
+  }, [recos]);
+
+  const activeRecosList = useMemo(() => {
+    return recos.filter((reco: any) => reco.status !== "pending_approval");
+  }, [recos]);
   
   // Custom Delete Confirm Dialog state
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<{ id: string; title: string } | null>(null);
@@ -2384,7 +2463,7 @@ function SimpleRecosConsole({
       const payload = {
         title,
         paragraph,
-        image_url: newType === "button" ? "" : imageUrl,
+        image_url: imageUrl,
         cta_text: ctaText,
         cta_url: ctaUrl,
         is_featured: isFeatured,
@@ -2415,6 +2494,22 @@ function SimpleRecosConsole({
     setDeleteConfirmItem({ id, title });
   };
 
+  const handleMove = async (id: string, direction: "up" | "down", e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const res = await fetch(`/api/recos/${id}/move`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ direction })
+      });
+      if (res.ok) {
+        onRefresh();
+      }
+    } catch (err) {
+      console.error("Failed to move recommendation:", err);
+    }
+  };
+
   const handleConfirmDelete = async () => {
     if (!deleteConfirmItem) return;
     try {
@@ -2436,13 +2531,14 @@ function SimpleRecosConsole({
 
   // Get metrics for selected recommendation
   const metrics = useMemo(() => {
-    if (!selectedForMetrics) return { impressions: 0, opens: 0, clicks: 0, ctr: 0, history: [] };
+    if (!selectedForMetrics) return { impressions: 0, opens: 0, clicks: 0, ctr: 0, imageClicks: 0, history: [] };
     const recoId = selectedForMetrics.id;
     const filtered = recoInteractions.filter((ri: any) => String(ri.recoId) === String(recoId));
     
     const impressions = filtered.filter((ri: any) => ri.type === "impression").length;
     const opens = filtered.filter((ri: any) => ri.type === "open").length;
     const clicks = filtered.filter((ri: any) => ri.type === "click" || ri.type === "conversion").length;
+    const imageClicks = filtered.filter((ri: any) => ri.type === "image_click" || ri.type === "image-click").length;
     const ctr = opens > 0 ? Math.round((clicks / opens) * 100) : 0;
 
     // Build log list
@@ -2450,6 +2546,7 @@ function SimpleRecosConsole({
       let actionLabel = "Loaded";
       if (ri.type === "open") actionLabel = "Clicked Open Details";
       if (ri.type === "click" || ri.type === "conversion") actionLabel = "Outbound Destination Redirect";
+      if (ri.type === "image_click" || ri.type === "image-click") actionLabel = "Opened Fullscreen Image";
       
       return {
         id: ri.id,
@@ -2460,7 +2557,7 @@ function SimpleRecosConsole({
       };
     }).reverse().slice(0, 5);
 
-    return { impressions, opens, clicks, ctr, history };
+    return { impressions, opens, clicks, ctr, imageClicks, history };
   }, [selectedForMetrics, recoInteractions]);
 
   return (
@@ -2487,12 +2584,95 @@ function SimpleRecosConsole({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* RECOMMENDATION LISTINGS (LEFT 7 COLS) */}
         <div className="lg:col-span-7 space-y-4">
+          {/* PENDING APPROVALS LIST FROM PARTNERS */}
+          {pendingPartnerRecos.length > 0 && (
+            <div className="bg-amber-950/20 border border-amber-500/10 rounded-2xl p-4 space-y-3">
+              <h3 className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5 pl-1">
+                <Clock size={14} className="animate-pulse" />
+                Awaiting Moderation: Partner Uploads ({pendingPartnerRecos.length})
+              </h3>
+              <p className="text-[11px] text-slate-450 leading-relaxed text-slate-400">
+                The following placements have been uploaded by corporate partners and require admin review before going live to guests.
+              </p>
+              
+              <div className="space-y-3">
+                {pendingPartnerRecos.map((reco) => (
+                  <div key={reco.id} className="bg-[#181818] border border-white/[0.05] rounded-xl p-3 flex flex-col sm:flex-row gap-3.5 items-start sm:items-center justify-between text-left">
+                    <div className="flex gap-3 items-center">
+                      <img 
+                        src={reco.image_url} 
+                        alt="" 
+                        className="w-12 h-12 rounded-lg object-cover border border-white/5" 
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="space-y-0.5 text-left">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-xs text-slate-200">{reco.title}</span>
+                          <span className="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-amber-900/40 text-amber-400 font-mono">
+                            {reco.company || "Partner"}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 line-clamp-1">{reco.paragraph}</p>
+                        <div className="flex items-center gap-2 text-[10px] font-mono text-[#cca472]">
+                          <span>CTA: {reco.cta_text || "More Info"}</span>
+                          <span>•</span>
+                          <span className="truncate max-w-[120px]">{reco.cta_url || "Link"}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-1.5 w-full sm:w-auto shrink-0 justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5">
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            const res = await fetch(`/api/recos/${reco.id}`, {
+                              method: "PUT",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ status: "approved" })
+                            });
+                            if (res.ok) {
+                              onRefresh();
+                            }
+                          } catch (err) {
+                            console.error(err);
+                          }
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-[9px] uppercase tracking-wider cursor-pointer transition-all active:scale-[0.98]"
+                      >
+                        Approve Live
+                      </button>
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            const res = await fetch(`/api/recos/${reco.id}`, {
+                              method: "DELETE"
+                            });
+                            if (res.ok) {
+                              onRefresh();
+                            }
+                          } catch (err) {
+                            console.error(err);
+                          }
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-rose-650 hover:bg-rose-600 text-white font-mono font-bold text-[9px] uppercase tracking-wider cursor-pointer transition-all active:scale-[0.98]"
+                      >
+                        Reject & Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <h3 className="text-xs font-mono font-semibold text-slate-500 uppercase tracking-widest pl-1">
-            Active Recommendations ({recos.length})
+            Active Recommendations ({activeRecosList.length})
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {recos.map((reco) => {
+            {activeRecosList.map((reco, idx) => {
               const isSelected = selectedForMetrics?.id === reco.id;
               const isButton = reco.type === "button";
               
@@ -2501,6 +2681,7 @@ function SimpleRecosConsole({
               const localImpressions = localFiltered.filter((ri: any) => ri.type === "impression").length;
               const localOpens = localFiltered.filter((ri: any) => ri.type === "open").length;
               const localClicks = localFiltered.filter((ri: any) => ri.type === "click" || ri.type === "conversion").length;
+              const localImageClicks = localFiltered.filter((ri: any) => ri.type === "image_click" || ri.type === "image-click").length;
 
               return (
                 <div
@@ -2550,13 +2731,30 @@ function SimpleRecosConsole({
 
                     <div className="flex justify-between items-center pt-2 border-t border-white/[0.03] mt-2 h-7">
                       {/* Clicks metrics tracker */}
-                      <div className="flex gap-4 text-[10px] font-mono text-slate-500">
+                      <div className="flex gap-3 text-[10px] font-mono text-slate-500">
                         <span>I: <strong className="text-slate-300">{localImpressions}</strong></span>
                         <span>O: <strong className="text-slate-300">{localOpens}</strong></span>
                         <span>C: <strong className="text-slate-300">{localClicks}</strong></span>
+                        <span>Img: <strong className="text-slate-300">{localImageClicks}</strong></span>
                       </div>
 
                       <div className="flex items-center gap-1">
+                        <button
+                          onClick={(e) => handleMove(reco.id, "up", e)}
+                          disabled={idx === 0}
+                          className="p-1.5 text-slate-400 hover:text-[#cca472] hover:bg-white/5 rounded-lg transition-all disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-slate-400 cursor-pointer"
+                          title="Move Up"
+                        >
+                          <ArrowUp size={13} />
+                        </button>
+                        <button
+                          onClick={(e) => handleMove(reco.id, "down", e)}
+                          disabled={idx === recos.length - 1}
+                          className="p-1.5 text-slate-400 hover:text-[#cca472] hover:bg-white/5 rounded-lg transition-all disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-slate-400 cursor-pointer"
+                          title="Move Down"
+                        >
+                          <ArrowDown size={13} />
+                        </button>
                         <button
                           onClick={(e) => handleOpenEdit(reco, e)}
                           className="p-1.5 text-slate-400 hover:text-[#cca472] hover:bg-white/5 rounded-lg transition-all"
@@ -2595,18 +2793,22 @@ function SimpleRecosConsole({
               </div>
 
               {/* Core numbers Grid */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-black/30 border border-white/[0.03] rounded-xl p-3 text-center space-y-1">
-                  <span className="text-[10px] font-mono text-slate-500 uppercase">Impressions</span>
-                  <div className="text-lg font-serif font-bold text-white">{metrics.impressions}</div>
+              <div className="grid grid-cols-4 gap-2">
+                <div className="bg-black/30 border border-white/[0.03] rounded-xl p-2.5 text-center space-y-1">
+                  <span className="text-[9px] font-mono text-slate-500 uppercase">Impressions</span>
+                  <div className="text-base font-serif font-bold text-white">{metrics.impressions}</div>
                 </div>
-                <div className="bg-black/30 border border-white/[0.03] rounded-xl p-3 text-center space-y-1">
-                  <span className="text-[10px] font-mono text-slate-500 uppercase">Opens</span>
-                  <div className="text-lg font-serif font-bold text-[#cca472]">{metrics.opens}</div>
+                <div className="bg-black/30 border border-white/[0.03] rounded-xl p-2.5 text-center space-y-1">
+                  <span className="text-[9px] font-mono text-slate-500 uppercase">Opens</span>
+                  <div className="text-base font-serif font-bold text-[#cca472]">{metrics.opens}</div>
                 </div>
-                <div className="bg-black/30 border border-white/[0.03] rounded-xl p-3 text-center space-y-1">
-                  <span className="text-[10px] font-mono text-slate-500 uppercase">Conversions</span>
-                  <div className="text-lg font-serif font-bold text-emerald-400">{metrics.clicks}</div>
+                <div className="bg-black/30 border border-white/[0.03] rounded-xl p-2.5 text-center space-y-1">
+                  <span className="text-[9px] font-mono text-slate-500 uppercase">Clicks</span>
+                  <div className="text-base font-serif font-bold text-emerald-400">{metrics.clicks}</div>
+                </div>
+                <div className="bg-black/30 border border-white/[0.03] rounded-xl p-2.5 text-center space-y-1">
+                  <span className="text-[9px] font-mono text-slate-500 uppercase">Img Clicks</span>
+                  <div className="text-base font-serif font-bold text-amber-500">{metrics.imageClicks}</div>
                 </div>
               </div>
 
@@ -2667,7 +2869,10 @@ function SimpleRecosConsole({
       {/* ADD RECOMMENDATION / EDIT MODAL & TYPE WIZARD */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-fade-in text-left">
-          <div className="bg-[#161616] border border-white/[0.08] rounded-3xl p-6 max-w-md w-full space-y-6 shadow-2xl relative">
+          <div className={cn(
+            "bg-[#161616] border border-white/[0.08] rounded-3xl p-6 w-full space-y-6 shadow-2xl relative transition-all duration-300",
+            (wizardStep === 2 || editingId) ? "max-w-4xl" : "max-w-md"
+          )}>
             <button
               onClick={() => setShowAddModal(false)}
               className="absolute top-5 right-5 text-slate-400 hover:text-white transition-colors cursor-pointer"
@@ -2750,39 +2955,39 @@ function SimpleRecosConsole({
                 </button>
               </div>
             ) : (
-              /* WIZARD STEP 2: FILL UP DETAILS FORM */
-              <form onSubmit={handleSave} className="space-y-4">
-                <div className="grid grid-cols-1 gap-3.5 text-xs">
-                  {/* Recommendation Title */}
-                  <div className="space-y-1">
-                    <label className="font-mono text-slate-400 uppercase text-[9px]">Recommendation Title</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Nelson Mandela Square"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      className="w-full bg-black/50 border border-white/5 rounded-xl p-3 text-slate-350 focus:border-[#cca472] outline-none"
-                    />
-                  </div>
-
-                  {/* Recommendation Description */}
-                  <div className="space-y-1">
-                    <label className="font-mono text-slate-400 uppercase text-[9px]">Paragraph Summary</label>
-                    <textarea
-                      rows={3}
-                      required
-                      placeholder="e.g. Paying homage to one of the world's greatest leaders, with elegant fine dining..."
-                      value={paragraph}
-                      onChange={(e) => setParagraph(e.target.value)}
-                      className="w-full bg-black/50 border border-white/5 rounded-xl p-3 text-slate-350 focus:border-[#cca472] outline-none"
-                    />
-                  </div>
-
-                  {/* Recommendation Image URL (Only for Card Type!) */}
-                  {newType === "card" && (
+              /* WIZARD STEP 2: FILL UP DETAILS FORM & LIVE PREVIEW GRID */
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                <form onSubmit={handleSave} className="lg:col-span-6 space-y-4">
+                  <div className="grid grid-cols-1 gap-3.5 text-xs">
+                    {/* Recommendation Title */}
                     <div className="space-y-1">
-                      <label className="font-mono text-slate-400 uppercase text-[9px]">Banner Image URL</label>
+                      <label className="font-mono text-slate-400 uppercase text-[9px]">Recommendation Title</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Nelson Mandela Square"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        className="w-full bg-black/50 border border-white/5 rounded-xl p-3 text-slate-350 focus:border-[#cca472] outline-none"
+                      />
+                    </div>
+
+                    {/* Recommendation Description */}
+                    <div className="space-y-1">
+                      <label className="font-mono text-slate-400 uppercase text-[9px]">Paragraph Summary</label>
+                      <textarea
+                        rows={3}
+                        required
+                        placeholder="e.g. Paying homage to one of the world's greatest leaders, with elegant fine dining..."
+                        value={paragraph}
+                        onChange={(e) => setParagraph(e.target.value)}
+                        className="w-full bg-black/50 border border-white/5 rounded-xl p-3 text-slate-350 focus:border-[#cca472] outline-none"
+                      />
+                    </div>
+
+                    {/* Recommendation Image URL */}
+                    <div className="space-y-1">
+                      <label className="font-mono text-slate-400 uppercase text-[9px]">Banner Image URL {newType === "button" && <span className="text-[#cca472] italic font-bold lowercase">(only shown in bottom sheet)</span>}</label>
                       <input
                         type="text"
                         required
@@ -2792,55 +2997,65 @@ function SimpleRecosConsole({
                         className="w-full bg-black/50 border border-white/5 rounded-xl p-3 text-slate-350 focus:border-[#cca472] outline-none"
                       />
                     </div>
-                  )}
 
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* CTA Button Text */}
-                    <div className="space-y-1">
-                      <label className="font-mono text-slate-400 uppercase text-[9px]">CTA Link Text</label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. More Info"
-                        value={ctaText}
-                        onChange={(e) => setCtaText(e.target.value)}
-                        className="w-full bg-black/50 border border-white/5 rounded-xl p-3 text-slate-350 focus:border-[#cca472] outline-none"
-                      />
-                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* CTA Button Text */}
+                      <div className="space-y-1">
+                        <label className="font-mono text-slate-400 uppercase text-[9px]">CTA Link Text</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. More Info"
+                          value={ctaText}
+                          onChange={(e) => setCtaText(e.target.value)}
+                          className="w-full bg-black/50 border border-white/5 rounded-xl p-3 text-slate-350 focus:border-[#cca472] outline-none"
+                        />
+                      </div>
 
-                    {/* CTA URL */}
-                    <div className="space-y-1">
-                      <label className="font-mono text-slate-400 uppercase text-[9px]">Outbound CTA URL</label>
-                      <input
-                        type="text"
-                        placeholder="https://..."
-                        value={ctaUrl}
-                        onChange={(e) => setCtaUrl(e.target.value)}
-                        className="w-full bg-black/50 border border-white/5 rounded-xl p-3 text-slate-350 focus:border-[#cca472] outline-none"
-                      />
+                      {/* CTA URL */}
+                      <div className="space-y-1">
+                        <label className="font-mono text-slate-400 uppercase text-[9px]">Outbound CTA URL</label>
+                        <input
+                          type="text"
+                          placeholder="https://..."
+                          value={ctaUrl}
+                          onChange={(e) => setCtaUrl(e.target.value)}
+                          className="w-full bg-black/50 border border-white/5 rounded-xl p-3 text-slate-350 focus:border-[#cca472] outline-none"
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex gap-2 pt-2">
-                  {!editingId && (
+                  <div className="flex gap-2 pt-2">
+                    {!editingId && (
+                      <button
+                        type="button"
+                        onClick={() => setWizardStep(1)}
+                        className="flex-1 bg-white/5 hover:bg-white/10 border border-white/5 text-slate-300 font-semibold text-xs py-3 rounded-xl uppercase tracking-wider text-center cursor-pointer transition-colors"
+                      >
+                        Back
+                      </button>
+                    )}
                     <button
-                      type="button"
-                      onClick={() => setWizardStep(1)}
-                      className="flex-1 bg-white/5 hover:bg-white/10 border border-white/5 text-slate-300 font-semibold text-xs py-3 rounded-xl uppercase tracking-wider text-center cursor-pointer transition-colors"
+                      type="submit"
+                      disabled={saving}
+                      className="flex-1 bg-[#cca472] hover:bg-[#ba9361] text-black font-semibold text-xs py-3 rounded-xl uppercase tracking-wider text-center cursor-pointer transition-colors"
                     >
-                      Back
+                      {saving ? "Saving..." : editingId ? "Update Listing" : "Publish Listing"}
                     </button>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="flex-1 bg-[#cca472] hover:bg-[#ba9361] text-black font-semibold text-xs py-3 rounded-xl uppercase tracking-wider text-center cursor-pointer transition-colors"
-                  >
-                    {saving ? "Saving..." : editingId ? "Update Listing" : "Publish Listing"}
-                  </button>
+                  </div>
+                </form>
+
+                <div className="lg:col-span-6">
+                  <AdLivePreview
+                    title={title}
+                    paragraph={paragraph}
+                    imageUrl={imageUrl}
+                    ctaText={ctaText}
+                    type={newType}
+                  />
                 </div>
-              </form>
+              </div>
             )}
           </div>
         </div>
@@ -2875,6 +3090,1027 @@ function SimpleRecosConsole({
                 type="button"
                 onClick={handleConfirmDelete}
                 className="px-4 py-2 rounded-lg bg-red-650 hover:bg-red-600 text-white text-xs font-mono font-bold cursor-pointer transition-all"
+              >
+                CONFIRM DELETE
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- AD LIVE ACTUAL-TO-SIZE PREVIEW COMPONENT ---
+export function AdLivePreview({
+  title,
+  paragraph,
+  imageUrl,
+  ctaText,
+  type,
+}: {
+  title: string;
+  paragraph: string;
+  imageUrl: string;
+  ctaText: string;
+  type: "card" | "button";
+}) {
+  const displayTitle = title || "The global phenomenon MAMMA MIA! returns to South Africa.";
+  const displayParagraph = paragraph || "The global phenomenon MAMMA MIA! returns to South Africa. With unforgettable songs, vibrant performances and pure feel-good energy, this beloved production has captivated audiences around the world – including South Africa, where it enjoyed a sell-out season in 2024.";
+  const displayImageUrl = imageUrl || "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&q=80";
+  const displayCtaText = ctaText || "BOOK TICKETS";
+
+  return (
+    <div className="flex flex-col items-center justify-center p-2">
+      {/* High-fidelity guest mobile recommendation card mockup */}
+      <div className="w-full max-w-sm bg-[#0e0e0e] border border-white/[0.08] rounded-[2.2rem] p-6 shadow-[0_24px_60px_-15px_rgba(0,0,0,0.8)] relative text-left select-none">
+        
+        {/* Header with city categorization & close index */}
+        <div className="flex justify-between items-center mb-4">
+          <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#cca472] font-sans">
+            DISCOVER JOBURG
+          </span>
+          <button
+            type="button"
+            className="text-slate-500 hover:text-white transition-colors cursor-pointer p-0.5"
+            aria-label="Close"
+          >
+            <X size={15} />
+          </button>
+        </div>
+
+        {/* Real-time elegant serif header title */}
+        <h3 className="text-xl md:text-2xl font-serif text-white font-semibold tracking-tight leading-snug mb-5">
+          {displayTitle}
+        </h3>
+
+        {/* Featured Image Canvas */}
+        <div className="w-full aspect-[16/10] rounded-2xl overflow-hidden border border-white/[0.05] bg-zinc-900 shadow-inner mb-5">
+          <img
+            src={displayImageUrl}
+            alt={displayTitle}
+            className="w-full h-full object-cover pointer-events-none"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&q=80";
+            }}
+          />
+        </div>
+
+        {/* Dynamic narrative description body copy */}
+        <div className="text-slate-300 font-sans leading-relaxed text-[13px] font-normal mb-6 max-h-[160px] overflow-y-auto pr-1">
+          {displayParagraph}
+        </div>
+
+        {/* Absolute bottom interactive gold CTA trigger */}
+        <div className="pt-2">
+          <button
+            type="button"
+            className="w-full bg-[#cca472] hover:bg-[#ba9361] text-black font-black py-3.5 rounded-2xl text-[12px] uppercase tracking-[0.16em] text-center transition-all cursor-pointer shadow-lg font-sans"
+          >
+            {displayCtaText.toUpperCase()}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- CAMPAIGN PERFORMANCE & ROI CALCULATOR ---
+export function CampaignCalculatorView() {
+  const [calcRooms, setCalcRooms] = useState(600);
+  const [calcOccupancy, setCalcOccupancy] = useState(45);
+  const [calcCtr, setCalcCtr] = useState(50);
+
+  return (
+    <div className="bg-[#111] border border-white/5 rounded-2xl p-6 space-y-6 text-left animate-fade-in">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-4">
+        <div className="space-y-1">
+          <h3 className="text-sm font-sans font-extrabold uppercase tracking-widest text-[#cca472] flex items-center gap-2">
+            <Calculator size={18} className="text-[#cca472]" />
+            ROI & Campaign Budget Estimator (Pay-Per-CTA click)
+          </h3>
+          <p className="text-xs text-slate-400">
+            Calculate projected outreach and monthly performance budgets based on live hospitality engagement.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 bg-[#cca472]/10 border border-[#cca472]/20 px-3 py-1.5 rounded-xl">
+          <Coins size={14} className="text-[#cca472]" />
+          <span className="text-[11px] font-mono font-bold text-[#cca472] uppercase tracking-wider">
+            R12.00 / CTA Click ONLY
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* SLIDERS COLUMN */}
+        <div className="lg:col-span-7 space-y-5 text-left">
+          {/* Rooms Slider */}
+          <div className="space-y-2">
+            <div className="flex justify-between items-center text-xs">
+              <span className="font-mono text-slate-400 uppercase text-[10px] tracking-wider">Establishment Size</span>
+              <span className="font-mono font-bold text-white">{calcRooms} Rooms</span>
+            </div>
+            <input
+              type="range"
+              min="50"
+              max="1500"
+              step="10"
+              value={calcRooms}
+              onChange={(e) => setCalcRooms(Number(e.target.value))}
+              className="w-full h-1.5 bg-black/40 rounded-lg appearance-none cursor-pointer accent-[#cca472]"
+            />
+            <div className="flex justify-between text-[9px] font-mono text-slate-500">
+              <span>50 Rooms</span>
+              <span>600 Rooms (Slider Standard)</span>
+              <span>1,500 Rooms</span>
+            </div>
+          </div>
+
+          {/* Occupancy Rate Slider */}
+          <div className="space-y-2">
+            <div className="flex justify-between items-center text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="font-mono text-slate-400 uppercase text-[10px] tracking-wider">Average Occupancy</span>
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-[#cca472]/10 text-[#cca472] border border-[#cca472]/20 font-bold">
+                  45% Standard Base
+                </span>
+              </div>
+              <span className="font-mono font-bold text-white">{calcOccupancy}%</span>
+            </div>
+            <input
+              type="range"
+              min="10"
+              max="100"
+              step="5"
+              value={calcOccupancy}
+              onChange={(e) => setCalcOccupancy(Number(e.target.value))}
+              className="w-full h-1.5 bg-black/40 rounded-lg appearance-none cursor-pointer accent-[#cca472]"
+            />
+            <div className="flex justify-between text-[9px] font-mono text-slate-500">
+              <span>10% Occupancy</span>
+              <span>45% Standard Target</span>
+              <span>100% Fully Occupied</span>
+            </div>
+          </div>
+
+          {/* Expected CTR Slider */}
+          <div className="space-y-2">
+            <div className="flex justify-between items-center text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="font-mono text-slate-400 uppercase text-[10px] tracking-wider">Estimated Outbound CTR Click-Through</span>
+              </div>
+              <span className="font-mono font-bold text-white">{calcCtr}% CTR (conservative projection)</span>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="100"
+              step="1"
+              value={calcCtr}
+              onChange={(e) => setCalcCtr(Number(e.target.value))}
+              className="w-full h-1.5 bg-black/40 rounded-lg appearance-none cursor-pointer accent-[#cca472]"
+            />
+            <div className="flex justify-between text-[9px] font-mono text-slate-500">
+              <span>1% Click-Through</span>
+              <span>50% Standard Target (conservative projection)</span>
+              <span>100% Full Conversion</span>
+            </div>
+          </div>
+
+          {/* Explanatory Banner */}
+          <div className="bg-slate-900/50 border border-white/5 rounded-xl p-3.5 text-xs text-slate-400 leading-relaxed text-left space-y-1.5 font-sans">
+            <p className="font-semibold text-slate-350 text-white">How does the Pay-per-CTA pricing work?</p>
+            <p>
+              Unlike standard advertising vehicles, the Recos platform operates on a strict <strong className="text-white">outbound action model</strong>. 
+              Your placements earn infinite free cover impressions and internal detailed card detail opens for free. 
+              You are strictly billed <strong className="text-white">R 12.00 ZAR</strong> only when guests tap/click your custom outbound link (e.g. 
+              <span className="font-mono text-[#cca472] px-1 bg-black/30 rounded mx-1">"Reserve Table"</span> or 
+              <span className="font-mono text-[#cca472] px-1 bg-black/30 rounded">"More Info"</span>/redirect).
+            </p>
+          </div>
+        </div>
+
+        {/* BUDGET SUMMARY CARD COLUMN */}
+        <div className="lg:col-span-5 bg-black/40 border border-white/5 rounded-2xl p-5 space-y-4 text-left">
+          <h4 className="font-mono text-slate-400 uppercase text-[10px] tracking-wider border-b border-white/5 pb-2">
+            Guesstimate Monthly Analytics Summary
+          </h4>
+
+          <div className="space-y-3 font-sans text-xs">
+            <div className="flex justify-between">
+              <span className="text-slate-400">Total Available Rooms:</span>
+              <span className="font-mono text-slate-200">{calcRooms}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">Occupancy Bias Rate:</span>
+              <span className="font-mono text-slate-200">{calcOccupancy}% occupied</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">Monthly Room-Nights:</span>
+              <span className="font-mono text-slate-200 font-semibold">
+                {Math.round(calcRooms * (calcOccupancy / 100) * 30)} nights
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">Projected Guest Outbound CTR Rate:</span>
+              <span className="font-mono text-[#cca472] font-semibold">{calcCtr}% (conservative projection)</span>
+            </div>
+            
+            <div className="border-t border-white/5 my-2 pt-2 flex justify-between">
+              <span className="text-slate-400">Estimated Monthly CTA Clicks:</span>
+              <span className="font-mono text-slate-100 font-bold text-white">
+                {Math.round(calcRooms * (calcOccupancy / 100) * 30 * (calcCtr / 100))} redirects
+              </span>
+            </div>
+            
+            <div className="flex justify-between">
+              <span className="text-slate-400">Curator Pricing Rate:</span>
+              <span className="font-mono text-emerald-400 font-bold">R 12.00 per Click</span>
+            </div>
+          </div>
+
+          <div className="bg-[#cca472]/5 border border-[#cca472]/15 rounded-xl p-4 text-center space-y-1">
+            <span className="text-[10px] font-mono text-[#cca472] uppercase tracking-wider block">Est. Monthly Total</span>
+            <div className="text-2xl font-mono text-white font-bold text-[#cca472]">
+              R {((calcRooms * (calcOccupancy / 100) * 30 * (calcCtr / 100)) * 12).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+            <span className="text-[9px] text-slate-500 block">ZAR / Month Projection</span>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setCalcRooms(600);
+                setCalcOccupancy(45);
+                setCalcCtr(50);
+              }}
+              className="w-full text-center py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-[10px] font-mono uppercase tracking-wider transition-all"
+            >
+              Reset to 45% Occupancy & 600 Rooms & 50% CTR
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- PARTNER RECOS CONSOLE ---
+export function PartnerRecosConsole({
+  partnerName,
+  recos,
+  recoInteractions,
+  onRefresh
+}: {
+  partnerName: string;
+  recos: any[];
+  recoInteractions: any[];
+  onRefresh: () => void;
+}) {
+  const [dateFrom, setDateFrom] = useState(() => {
+    // Default to 15 days ago
+    const d = new Date();
+    d.setDate(d.getDate() - 15);
+    return d.toISOString().split("T")[0];
+  });
+  const [dateTo, setDateTo] = useState(() => {
+    return new Date().toISOString().split("T")[0];
+  });
+
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [wizardStep, setWizardStep] = useState<1 | 2>(1);
+  const [newType, setNewType] = useState<"card" | "button">("card");
+
+  // Form fields
+  const [title, setTitle] = useState("");
+  const [paragraph, setParagraph] = useState("");
+  const [imageUrl, setImageUrl] = useState("https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&q=80");
+  const [ctaText, setCtaText] = useState("More Info");
+  const [ctaUrl, setCtaUrl] = useState("");
+  const [isFeatured, setIsFeatured] = useState(true);
+
+  const [saving, setSaving] = useState(false);
+
+  // Custom Delete Confirm Dialog state
+  const [deleteConfirmItem, setDeleteConfirmItem] = useState<{ id: string; title: string } | null>(null);
+
+  const handleDeleteClick = (id: string, title: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeleteConfirmItem({ id, title });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmItem) return;
+    try {
+      const res = await fetch(`/api/recos/${deleteConfirmItem.id}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        onRefresh();
+      }
+    } catch (err) {
+      console.error("Failed to delete recommendation:", err);
+    } finally {
+      setDeleteConfirmItem(null);
+    }
+  };
+
+  // Filter recommendations belonging to this company/partner
+  const partnerRecos = useMemo(() => {
+    return recos.filter(r => r.company && r.company.trim().toLowerCase() === partnerName.trim().toLowerCase());
+  }, [recos, partnerName]);
+
+  // Filter interactions within chosen date range
+  const filteredInteractions = useMemo(() => {
+    const fromTime = dateFrom ? new Date(dateFrom + "T00:00:00").getTime() : 0;
+    const toTime = dateTo ? new Date(dateTo + "T23:59:59").getTime() : Infinity;
+    return recoInteractions.filter((ri: any) => {
+      const t = ri.timestamp ? new Date(ri.timestamp).getTime() : 0;
+      return t >= fromTime && t <= toTime;
+    });
+  }, [recoInteractions, dateFrom, dateTo]);
+
+  // Overall metrics calculation for this partner
+  const metrics = useMemo(() => {
+    let totalImpressions = 0;
+    let totalOpens = 0;
+    let totalClicks = 0;
+    let totalImageClicks = 0;
+
+    partnerRecos.forEach(reco => {
+      const recoInteractionsFiltered = filteredInteractions.filter((ri: any) => String(ri.recoId) === String(reco.id));
+      totalImpressions += recoInteractionsFiltered.filter((ri: any) => ri.type === "impression").length;
+      totalOpens += recoInteractionsFiltered.filter((ri: any) => ri.type === "open").length;
+      totalClicks += recoInteractionsFiltered.filter((ri: any) => ri.type === "click" || ri.type === "conversion").length;
+      totalImageClicks += recoInteractionsFiltered.filter((ri: any) => ri.type === "image_click" || ri.type === "image-click").length;
+    });
+
+    const overallCtr = totalOpens > 0 ? Math.round((totalClicks / totalOpens) * 100) : 0;
+
+    return {
+      impressions: totalImpressions,
+      opens: totalOpens,
+      clicks: totalClicks,
+      imageClicks: totalImageClicks,
+      ctr: overallCtr
+    };
+  }, [partnerRecos, filteredInteractions]);
+
+  const handleOpenAdd = () => {
+    setTitle("");
+    setParagraph("");
+    setImageUrl("https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&q=80");
+    setCtaText("More Info");
+    setCtaUrl("");
+    setIsFeatured(true);
+    setNewType("card");
+    setWizardStep(1);
+    setShowAddModal(true);
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const payload = {
+        title,
+        paragraph,
+        image_url: imageUrl,
+        cta_text: ctaText,
+        cta_url: ctaUrl,
+        is_featured: isFeatured,
+        type: newType,
+        company: partnerName,
+        status: "pending_approval" // Sent for approval!
+      };
+
+      const res = await fetch("/api/recos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        onRefresh();
+        setShowAddModal(false);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDownloadCSV = () => {
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Ad Title,Type,Status,Impressions,Detail Opens,Outbound Redirects,Image Clicks,CTR (%)\n";
+    
+    partnerRecos.forEach(reco => {
+      const recoInteractionsFiltered = filteredInteractions.filter((ri: any) => String(ri.recoId) === String(reco.id));
+      const impressions = recoInteractionsFiltered.filter((ri: any) => ri.type === "impression").length;
+      const opens = recoInteractionsFiltered.filter((ri: any) => ri.type === "open").length;
+      const clicks = recoInteractionsFiltered.filter((ri: any) => ri.type === "click" || ri.type === "conversion").length;
+      const imageClicks = recoInteractionsFiltered.filter((ri: any) => ri.type === "image_click" || ri.type === "image-click").length;
+      const ctr = opens > 0 ? Math.round((clicks / opens) * 100) : 0;
+      
+      csvContent += `"${reco.title}","${reco.type || "card"}","${reco.status || "approved"}",${impressions},${opens},${clicks},${imageClicks},${ctr}%\n`;
+    });
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `${partnerName}_recos_report.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownloadPDF = () => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      alert("Please allow popups to download/print the PDF report.");
+      return;
+    }
+    
+    const adsRows = partnerRecos.map(reco => {
+      const recoInteractionsFiltered = filteredInteractions.filter((ri: any) => String(ri.recoId) === String(reco.id));
+      const impressions = recoInteractionsFiltered.filter((ri: any) => ri.type === "impression").length;
+      const opens = recoInteractionsFiltered.filter((ri: any) => ri.type === "open").length;
+      const clicks = recoInteractionsFiltered.filter((ri: any) => ri.type === "click" || ri.type === "conversion").length;
+      const imageClicks = recoInteractionsFiltered.filter((ri: any) => ri.type === "image_click" || ri.type === "image-click").length;
+      const ctr = opens > 0 ? Math.round((clicks / opens) * 100) : 0;
+      
+      return `
+        <tr style="border-bottom: 1px solid #ddd;">
+          <td style="padding: 12px; text-align: left; font-weight: bold;">${reco.title}</td>
+          <td style="padding: 12px; text-align: center;">${reco.type || "card"}</td>
+          <td style="padding: 12px; text-align: center;"><span style="background: ${reco.status === "pending_approval" ? "#fef3c7" : "#d1fae5"}; color: ${reco.status === "pending_approval" ? "#92400e" : "#065f46"}; padding: 4px 8px; border-radius: 9999px; font-size: 10px; font-weight: bold; text-transform: uppercase;">${reco.status || "approved"}</span></td>
+          <td style="padding: 12px; text-align: center;">${impressions}</td>
+          <td style="padding: 12px; text-align: center;">${opens}</td>
+          <td style="padding: 12px; text-align: center;">${clicks}</td>
+          <td style="padding: 12px; text-align: center;">${imageClicks}</td>
+          <td style="padding: 12px; text-align: center; font-weight: bold; color: #cca472;">${ctr}%</td>
+        </tr>
+      `;
+    }).join("");
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>RECOS Partner Insights Report - ${partnerName}</title>
+          <style>
+            body { font-family: 'Inter', sans-serif; color: #333; margin: 40px; }
+            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #cca472; padding-bottom: 20px; }
+            .title { font-size: 24px; font-weight: bold; font-family: serif; color: #111; }
+            .date { font-size: 12px; color: #666; font-family: monospace; }
+            .stats-grid { display: grid; grid-template-cols: repeat(4, 1fr); gap: 15px; margin: 30px 0; }
+            .stat-card { background: #f9f9f9; border: 1px solid #eee; padding: 15px; border-radius: 8px; text-align: center; }
+            .stat-value { font-size: 20px; font-weight: bold; color: #cca472; margin-top: 5px; }
+            .stat-label { font-size: 11px; text-transform: uppercase; color: #666; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { background: #111; color: white; padding: 12px; text-align: center; font-size: 11px; text-transform: uppercase; }
+            td { font-size: 13px; }
+            .footer { margin-top: 50px; text-align: center; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <div class="title">${partnerName} - RECOS Report</div>
+              <div style="font-size: 12px; color: #666; margin-top: 4px;">Exclusive Partner Recommendation Insights</div>
+            </div>
+            <div class="date">
+              Range: ${dateFrom || "All Time"} to ${dateTo || "Today"}<br>
+              Generated: ${new Date().toLocaleDateString()}
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-label">Total Impressions</div>
+              <div class="stat-value">${metrics.impressions}</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Detail Opens</div>
+              <div class="stat-value">${metrics.opens}</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Direct Clicks</div>
+              <div class="stat-value">${metrics.clicks}</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Overall Click-Thru (opens)</div>
+              <div class="stat-value">${metrics.ctr}%</div>
+            </div>
+          </div>
+
+          <h3>Ad Placements Summary</h3>
+          <table>
+            <thead>
+              <tr>
+                <th style="text-align: left;">Ad Title</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Impressions</th>
+                <th>Opens</th>
+                <th>Clicks</th>
+                <th>Img Clicks</th>
+                <th>CTR</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${adsRows}
+            </tbody>
+          </table>
+
+          <div class="footer">
+            RECOS Ad Management Console &copy; 2026 - the Recos platform. Confidential insights compiled dynamically.
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+              window.close();
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* HEADER SECTION WITH TITLE AND QUICK ACTIONS */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-black/30 border border-white/5 rounded-2xl p-6">
+        <div>
+          <h2 className="text-xl font-serif font-bold text-white tracking-wide flex items-center gap-2">
+            <User className="text-[#cca472]" size={22} />
+            {partnerName} Recommendations Dashboard
+          </h2>
+          <p className="text-xs text-slate-400 mt-1">
+            Grow your brand footprint. Manage and analyze your curated placements live in the guest lounge.
+          </p>
+        </div>
+        <button
+          onClick={handleOpenAdd}
+          className="bg-[#cca472] hover:bg-[#ba9361] text-black font-semibold text-xs py-2.5 px-4 rounded-xl flex items-center gap-1.5 cursor-pointer uppercase tracking-wider transition-colors active:scale-[0.98]"
+        >
+          <Plus size={16} />
+          Upload New Ad
+        </button>
+      </div>
+
+      {/* FILTER CONTROLS */}
+      <div className="flex flex-col sm:flex-row gap-4 bg-black/20 border border-white/5 rounded-2xl p-4 items-center justify-between text-xs">
+        <div className="flex items-center gap-2 font-mono text-slate-400">
+          <Calendar size={14} className="text-[#cca472]" />
+          <span>DATE GRANULARITY:</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] uppercase font-mono text-slate-500">From</span>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="bg-black/50 border border-white/5 rounded-lg px-2.5 py-1.5 text-slate-300 outline-none focus:border-[#cca472] text-[11px] font-mono"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] uppercase font-mono text-slate-500">To</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="bg-black/50 border border-white/5 rounded-lg px-2.5 py-1.5 text-slate-300 outline-none focus:border-[#cca472] text-[11px] font-mono"
+            />
+          </div>
+          <div className="flex gap-2 pl-2 border-l border-white/5">
+            <button
+              onClick={handleDownloadCSV}
+              className="bg-white/5 hover:bg-white/10 text-slate-300 font-mono text-[10px] rounded-lg px-3 py-1.5 flex items-center gap-1 cursor-pointer border border-white/5 transition-all"
+              title="Download Excel/CSV Report"
+            >
+              <Download size={12} />
+              CSV
+            </button>
+            <button
+              onClick={handleDownloadPDF}
+              className="bg-white/5 hover:bg-white/10 text-slate-300 font-mono text-[10px] rounded-lg px-3 py-1.5 flex items-center gap-1 cursor-pointer border border-white/5 transition-all"
+              title="Download Printed PDF Report"
+            >
+              <Download size={12} />
+              PDF REPORT
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* METRIC BOXES */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Metric 1 */}
+        <div className="bg-[#111] border border-white/5 rounded-2xl p-5 space-y-2 flex flex-col justify-between">
+          <div className="flex justify-between items-start">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">Total Impressions</span>
+            <div className="p-2 rounded-lg bg-white/5 text-slate-400"><Eye size={16} /></div>
+          </div>
+          <div className="space-y-0.5">
+            <h4 className="text-2xl font-mono text-white font-bold leading-none">{metrics.impressions}</h4>
+            <p className="text-[9px] text-slate-500 font-sans">Curated card lounge loads</p>
+          </div>
+        </div>
+
+        {/* Metric 2 */}
+        <div className="bg-[#111] border border-white/5 rounded-2xl p-5 space-y-2 flex flex-col justify-between">
+          <div className="flex justify-between items-start">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">Card Detail Opens</span>
+            <div className="p-2 rounded-lg bg-white/5 text-slate-400"><Star size={16} /></div>
+          </div>
+          <div className="space-y-0.5">
+            <h4 className="text-2xl font-mono text-[#cca472] font-bold leading-none">{metrics.opens}</h4>
+            <p className="text-[9px] text-slate-500 font-sans">Full description overlay expand</p>
+          </div>
+        </div>
+
+        {/* Metric 3 */}
+        <div className="bg-[#111] border border-white/5 rounded-2xl p-5 space-y-2 flex flex-col justify-between">
+          <div className="flex justify-between items-start">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">Outbound Re-directs</span>
+            <div className="p-2 rounded-lg bg-white/5 text-slate-400"><ExternalLink size={16} /></div>
+          </div>
+          <div className="space-y-0.5">
+            <h4 className="text-2xl font-mono text-emerald-450 font-bold leading-none">{metrics.clicks}</h4>
+            <p className="text-[9px] text-slate-500 font-sans">CTA destination button triggers</p>
+          </div>
+        </div>
+
+        {/* Metric 4 */}
+        <div className="bg-[#111] border border-white/5 rounded-2xl p-5 space-y-2 flex flex-col justify-between">
+          <div className="flex justify-between items-start">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">Conversion Rate</span>
+            <div className="p-2 rounded-lg bg-white/5 text-slate-400"><Download size={16} /></div>
+          </div>
+          <div className="space-y-0.5">
+            <h4 className="text-2xl font-mono text-white font-bold leading-none">{metrics.ctr}%</h4>
+            <p className="text-[9px] text-slate-500 font-sans">Outbound Redirects divided by Opens</p>
+          </div>
+        </div>
+      </div>
+
+
+
+      {/* PLACEMENT CHART (BEAUTIFUL RESPONSIVE CUSTOM CSS GRID DESIGN) */}
+      <div className="bg-[#111] border border-white/5 rounded-2xl p-6">
+        <h3 className="text-xs font-mono uppercase text-slate-300 tracking-wider mb-4 border-b border-white/5 pb-2">
+          Performance Visualization (Daily Impressions vs Clicks)
+        </h3>
+        {partnerRecos.length === 0 ? (
+          <div className="h-44 flex items-center justify-center text-slate-600 font-mono text-xs">
+            No recommendations created yet. Upload one to start tracking analytics.
+          </div>
+        ) : (
+          <div className="space-y-5">
+            <div className="h-44 flex items-end justify-between w-full pt-4 px-2 border-b border-white/10 gap-2">
+              {/* Build dynamic histogram daily columns representing active days */}
+              {Array.from({ length: 7 }).map((_, i) => {
+                const dayOffset = 6 - i;
+                const d = new Date();
+                d.setDate(d.getDate() - dayOffset);
+                const dayStr = d.toISOString().split("T")[0];
+                const dayLabel = d.toLocaleDateString([], { weekday: 'short' });
+
+                // calculate stats for this specific day
+                const dayFrom = new Date(dayStr + "T00:00:00").getTime();
+                const dayTo = new Date(dayStr + "T23:59:59").getTime();
+                
+                let dayImpressions = 0;
+                let dayClicks = 0;
+                
+                partnerRecos.forEach(reco => {
+                  const items = recoInteractions.filter(ri => 
+                    String(ri.recoId) === String(reco.id) &&
+                    ri.timestamp && 
+                    ri.timestamp >= dayFrom && 
+                    ri.timestamp <= dayTo
+                  );
+                  dayImpressions += items.filter(ri => ri.type === "impression").length;
+                  dayClicks += items.filter(ri => ri.type === "click" || ri.type === "conversion" || ri.type === "open").length;
+                });
+
+                // compute visual bar heights
+                const maxVal = Math.max(1, metrics.clicks + metrics.impressions);
+                const impHeight = Math.min(100, Math.max(10, (dayImpressions / maxVal) * 100));
+                const clickHeight = Math.min(100, Math.max(4, (dayClicks / maxVal) * 100));
+
+                return (
+                  <div key={dayStr} className="flex-1 flex flex-col items-center gap-1.5 h-full relative group">
+                    <div className="w-full flex justify-center items-end gap-1 h-[120px]">
+                      {/* Impressions Bar */}
+                      <div 
+                        style={{ height: `${impHeight}%` }} 
+                        className="w-1/2 bg-slate-800 rounded-t-sm transition-all duration-500 group-hover:bg-slate-705 min-h-[4px]"
+                        title={`${dayImpressions} Views`}
+                      />
+                      {/* Clicks Bar */}
+                      <div 
+                        style={{ height: `${clickHeight}%` }} 
+                        className="w-1/2 bg-[#cca472] rounded-t-sm transition-all duration-500 group-hover:bg-[#ba9361] min-h-[2px]"
+                        title={`${dayClicks} Clicks`}
+                      />
+                    </div>
+                    {/* Tooltip on hover */}
+                    <div className="absolute bottom-[130px] opacity-0 group-hover:opacity-100 transition-opacity bg-slate-100 bg-neutral-900 border border-white/10 px-2 py-1 rounded text-[9px] pointer-events-none font-mono text-center z-10 whitespace-nowrap">
+                      <span className="text-slate-400">Imp: {dayImpressions}</span> • <span className="text-[#cca472]">Clicks: {dayClicks}</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-500">{dayLabel}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex justify-center items-center gap-6 text-[10px] font-mono">
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 bg-slate-700 rounded-sm"></span>
+                <span className="text-slate-400">Impressions</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 bg-[#cca472] rounded-sm"></span>
+                <span className="text-slate-400">Engagement</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* OWN RECOMMENDATIONS STATUS AND DETAILED METRICS TABLE */}
+      <div className="bg-[#111] border border-white/5 rounded-2xl p-6 space-y-4">
+        <h3 className="text-xs font-mono uppercase text-slate-300 tracking-wider">
+          Your Curated Placement Listings ({partnerRecos.length})
+        </h3>
+
+        {partnerRecos.length === 0 ? (
+          <div className="text-center py-12 text-slate-600 font-mono text-xs">
+            No placements found. Press "Upload New Ad" above to publish your first recommendation!
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-white/5 text-slate-400 font-mono uppercase text-[10px]">
+                  <th className="py-3 text-left font-normal pl-2">Recommendation Title</th>
+                  <th className="py-3 text-center font-normal">Placement Type</th>
+                  <th className="py-3 text-center font-normal">Moderation Status</th>
+                  <th className="py-3 text-center font-normal">Views</th>
+                  <th className="py-3 text-center font-normal">Opens</th>
+                  <th className="py-3 text-center font-normal">Clicks</th>
+                  <th className="py-3 text-center font-normal">CTR</th>
+                  <th className="py-3 text-right pr-4 font-normal">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.03]">
+                {partnerRecos.map(reco => {
+                  const recoInteractionsFiltered = filteredInteractions.filter((ri: any) => String(ri.recoId) === String(reco.id));
+                  const impressions = recoInteractionsFiltered.filter((ri: any) => ri.type === "impression").length;
+                  const opens = recoInteractionsFiltered.filter((ri: any) => ri.type === "open").length;
+                  const clicks = recoInteractionsFiltered.filter((ri: any) => ri.type === "click" || ri.type === "conversion").length;
+                  const ctr = opens > 0 ? Math.round((clicks / opens) * 100) : 0;
+
+                  return (
+                    <tr key={reco.id} className="hover:bg-white/[0.01]">
+                      <td className="py-4 py-3.5 text-left font-semibold text-slate-250">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={reco.image_url}
+                            alt=""
+                            className="w-10 h-10 object-cover rounded-lg border border-white/10"
+                            referrerPolicy="no-referrer"
+                          />
+                          <div className="space-y-0.5">
+                            <span className="text-slate-100">{reco.title}</span>
+                            <span className="block text-[10px] font-normal text-slate-500 line-clamp-1">{reco.paragraph}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-4 text-center font-mono">
+                        <span className="px-2.5 py-1 rounded bg-black/40 border border-white/5 text-slate-400 capitalize">
+                          {reco.type || "card"}
+                        </span>
+                      </td>
+                      <td className="py-4 text-center font-mono font-bold text-[9px] uppercase tracking-wider">
+                        {reco.status === "pending_approval" ? (
+                          <span className="px-2 py-1 rounded-full bg-amber-950/30 text-amber-500 border border-amber-500/10 inline-flex items-center gap-1">
+                            <Clock size={10} />
+                            Pending approval
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 rounded-full bg-emerald-950/30 text-emerald-500 border border-emerald-500/10 inline-flex items-center gap-1">
+                            <CheckCircle2 size={10} />
+                            Active Live
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-4 text-center font-mono text-slate-300">{impressions}</td>
+                      <td className="py-4 text-center font-mono text-slate-300">{opens}</td>
+                      <td className="py-4 text-center font-mono text-slate-300">{clicks}</td>
+                      <td className="py-4 text-center font-mono text-[#cca472] font-semibold">{ctr}%</td>
+                      <td className="py-4 text-right pr-4">
+                        <button
+                          onClick={(e) => handleDeleteClick(reco.id, reco.title, e)}
+                          className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-white/5 rounded-lg transition-all cursor-pointer inline-flex items-center"
+                          title="Delete Listing"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* WIZARD MODAL POPUP FOR REMODELED PLATFORM */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[9999] animate-fade-in">
+          <div className={cn(
+            "bg-[#0c0c0c] border border-white/5 w-full p-6 rounded-3xl shadow-2xl space-y-4 transition-all duration-300",
+            wizardStep === 2 ? "max-w-4xl" : "max-w-md"
+          )}>
+            <div className="flex justify-between items-center pb-2 border-b border-white/5">
+              <h3 className="text-sm font-sans font-extrabold uppercase tracking-widest text-[#cca472]">
+                {wizardStep === 1 ? "Select Interaction Flow Style" : "Ad Placement Parameters"}
+              </h3>
+              <button onClick={() => setShowAddModal(false)} className="text-slate-500 hover:text-white cursor-pointer"><X size={18} /></button>
+            </div>
+
+            {wizardStep === 1 ? (
+              <div className="space-y-4 pt-1">
+                <p className="text-xs text-slate-400 leading-normal text-left">
+                  Choose the structural visual vehicle for your hotel promotion placement in the guest lounge.
+                </p>
+                <div className="grid grid-cols-2 gap-3.5">
+                  <div
+                    onClick={() => {
+                      setNewType("card");
+                      setWizardStep(2);
+                    }}
+                    className="bg-black/60 hover:bg-neutral-900 border border-white/5 hover:border-[#cca472]/30 p-4 rounded-2xl flex flex-col space-y-2 cursor-pointer transition-all hover:scale-[1.01] text-left"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-[#cca472]/10 flex items-center justify-center text-[#cca472]">
+                      <Star size={16} />
+                    </div>
+                    <h4 className="font-serif font-bold text-xs text-slate-255">Card Promo</h4>
+                    <p className="text-[10px] text-slate-500 leading-normal">
+                      Full cover photo layout showcased inside the curated swipe recommendations deck.
+                    </p>
+                  </div>
+
+                  <div
+                    onClick={() => {
+                      setNewType("button");
+                      setWizardStep(2);
+                    }}
+                    className="bg-black/60 hover:bg-neutral-900 border border-white/5 hover:border-[#cca472]/30 p-4 rounded-2xl flex flex-col space-y-2 cursor-pointer transition-all hover:scale-[1.01] text-left"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-[#cca472]/10 flex items-center justify-center text-[#cca472]">
+                      <Calendar size={16} />
+                    </div>
+                    <h4 className="font-serif font-bold text-xs text-slate-255">Compact Link Button</h4>
+                    <p className="text-[10px] text-slate-50 relative leading-normal text-slate-550">
+                      Standard inline action button that triggers directly in the placement footer.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* WIZARD STEP 2: DETAILS FORM WITH REAL-TIME PREVIEW GRID */
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                <form onSubmit={handleSave} className="lg:col-span-6 space-y-4">
+                  <div className="grid grid-cols-1 gap-3.5 text-xs text-left">
+                    <div className="space-y-1">
+                      <label className="font-mono text-slate-400 uppercase text-[9px]">Recommendation Title</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Fine Dining: Marble"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        className="w-full bg-black/50 border border-white/5 rounded-xl p-3 text-slate-350 focus:border-[#cca472] outline-none text-slate-200"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-mono text-slate-400 uppercase text-[9px]">Paragraph Summary</label>
+                      <textarea
+                        rows={3}
+                        required
+                        placeholder="e.g. Experience premium live-fire culinary art overlooking the beautiful Rosebank skyline..."
+                        value={paragraph}
+                        onChange={(e) => setParagraph(e.target.value)}
+                        className="w-full bg-black/50 border border-white/5 rounded-xl p-3 text-slate-350 focus:border-[#cca472] outline-none text-slate-200"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-mono text-slate-400 uppercase text-[9px]">Banner Image URL</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&q=80"
+                        value={imageUrl}
+                        onChange={(e) => setImageUrl(e.target.value)}
+                        className="w-full bg-black/50 border border-white/5 rounded-xl p-3 text-slate-350 focus:border-[#cca472] outline-none text-slate-200"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="font-mono text-slate-400 uppercase text-[9px]">CTA Link Text</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Reserve Table"
+                          value={ctaText}
+                          onChange={(e) => setCtaText(e.target.value)}
+                          className="w-full bg-black/50 border border-white/5 rounded-xl p-3 text-slate-350 focus:border-[#cca472] outline-none text-slate-200"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="font-mono text-slate-400 uppercase text-[9px]">Outbound CTA URL</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="https://..."
+                          value={ctaUrl}
+                          onChange={(e) => setCtaUrl(e.target.value)}
+                          className="w-full bg-black/50 border border-white/5 rounded-xl p-3 text-slate-350 focus:border-[#cca472] outline-none text-slate-100"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setWizardStep(1)}
+                      className="flex-1 bg-white/5 hover:bg-white/10 border border-white/5 text-slate-300 font-semibold text-xs py-3 rounded-xl uppercase tracking-wider text-center cursor-pointer transition-colors"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="flex-1 bg-[#cca472] hover:bg-[#ba9361] text-black font-semibold text-xs py-3 rounded-xl uppercase tracking-wider text-center cursor-pointer transition-colors"
+                    >
+                      {saving ? "Submitting..." : "Submit for Approval"}
+                    </button>
+                  </div>
+                </form>
+
+                <div className="lg:col-span-6">
+                  <AdLivePreview
+                    title={title}
+                    paragraph={paragraph}
+                    imageUrl={imageUrl}
+                    ctaText={ctaText}
+                    type={newType}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* CUSTOM POPUP DELETE CONFIRM OVERLAY */}
+      {deleteConfirmItem && (
+        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4 z-[10000] animate-fade-in" id="recos-partner-delete-confirm-popup">
+          <div className="bg-[#111] border border-white/5 rounded-3xl p-6 max-w-sm w-full space-y-6 shadow-2xl text-center">
+            <div className="w-12 h-12 rounded-full bg-red-950/50 border border-red-500/20 text-red-500 flex items-center justify-center mx-auto shadow-lg animate-bounce">
+              <Trash2 size={24} />
+            </div>
+            <div className="space-y-1.5 text-center">
+              <h4 className="text-sm font-sans font-extrabold uppercase tracking-widest text-[#cca472]">
+                Absolute Delete Element?
+              </h4>
+              <p className="text-xs text-slate-400 leading-relaxed font-sans">
+                Are you sure you want to permanently delete the recommendation <strong className="text-slate-200">"{deleteConfirmItem.title}"</strong>? This operation cannot be undone.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmItem(null)}
+                className="flex-1 bg-white/5 hover:bg-white/10 text-slate-300 font-semibold text-xs py-2.5 rounded-xl uppercase tracking-wider text-center cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="flex-1 bg-red-650 hover:bg-red-550 bg-red-600 text-white font-semibold text-xs py-2.5 rounded-xl uppercase tracking-wider text-center cursor-pointer transition-colors"
               >
                 CONFIRM DELETE
               </button>
@@ -3234,14 +4470,29 @@ function BackofficeConsole() {
             onConfigChange={handleConfigChange}
           />
         );
-      case "Recos":
+      case "Create Ad":
         return (
           <div className="animate-fade-in text-left">
-            <SimpleRecosConsole
-              recos={recos}
-              recoInteractions={recoInteractions}
-              onRefresh={syncBackofficeData}
-            />
+            {role === "recos_partner" ? (
+              <PartnerRecosConsole
+                partnerName={staffName || "Partner"}
+                recos={recos}
+                recoInteractions={recoInteractions}
+                onRefresh={syncBackofficeData}
+              />
+            ) : (
+              <SimpleRecosConsole
+                recos={recos}
+                recoInteractions={recoInteractions}
+                onRefresh={syncBackofficeData}
+              />
+            )}
+          </div>
+        );
+      case "CPC Calculator":
+        return (
+          <div className="animate-fade-in text-left">
+            <CampaignCalculatorView />
           </div>
         );
       default:
@@ -3314,6 +4565,8 @@ function BackofficeConsole() {
         <h1 className="font-serif text-[32px] tracking-wide text-[#cca472] font-semibold leading-none">
           {role === "recos"
             ? "RECOS Admin"
+            : role === "recos_partner"
+            ? `${staffName} (Partner)`
             : role === "staff"
             ? "Staff"
             : role === "manager"

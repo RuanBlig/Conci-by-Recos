@@ -1213,7 +1213,7 @@ Return a valid JSON object matching the following structure:
             facilities: masterFacilities,
             restaurants: masterRestaurants,
             promotions: masterPromotions,
-            recos: masterRecos
+            recos: masterRecos.filter((r: any) => r.status !== "pending_approval")
           };
 
           const systemInstruction = `You are "Recos Chat Assistant" (displaying under the name "Guest Assistant"), the official virtual concierge of ${masterConfig.hotelName || "Sandton Hotel"}.
@@ -1646,7 +1646,7 @@ Please generate the next response as the "Recos Chat Assistant" (the Guest Assis
   });
 
   app.post("/api/recos", async (req, res) => {
-    const { title, paragraph, image_url, cta_text, cta_url, is_featured, type } = req.body;
+    const { title, paragraph, image_url, cta_text, cta_url, is_featured, type, company, status } = req.body;
     const newReco = {
       id: `reco-${Date.now()}`,
       title: title || "New Recommendation",
@@ -1655,7 +1655,9 @@ Please generate the next response as the "Recos Chat Assistant" (the Guest Assis
       cta_text: cta_text || "More Info",
       cta_url: cta_url || "",
       is_featured: is_featured !== undefined ? !!is_featured : true,
-      type: type || "card"
+      type: type || "card",
+      company: company || undefined,
+      status: status || undefined
     };
     masterRecos.push(newReco);
     await saveSectionToFirestore("recos", masterRecos);
@@ -1678,6 +1680,26 @@ Please generate the next response as the "Recos Chat Assistant" (the Guest Assis
     if (index !== -1) {
       masterRecos.splice(index, 1);
       await saveSectionToFirestore("recos", masterRecos);
+    }
+    return res.json({ success: true, masterRecos });
+  });
+
+  app.post("/api/recos/:id/move", async (req, res) => {
+    const { id } = req.params;
+    const { direction } = req.body;
+    const index = masterRecos.findIndex(r => r.id === id);
+    if (index !== -1) {
+      if (direction === "up" && index > 0) {
+        const temp = masterRecos[index];
+        masterRecos[index] = masterRecos[index - 1];
+        masterRecos[index - 1] = temp;
+        await saveSectionToFirestore("recos", masterRecos);
+      } else if (direction === "down" && index < masterRecos.length - 1) {
+        const temp = masterRecos[index];
+        masterRecos[index] = masterRecos[index + 1];
+        masterRecos[index + 1] = temp;
+        await saveSectionToFirestore("recos", masterRecos);
+      }
     }
     return res.json({ success: true, masterRecos });
   });
