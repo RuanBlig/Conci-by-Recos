@@ -677,21 +677,13 @@ export function RecosAnalyticsView({
   recoInteractions: any[];
   recos: any[];
 }) {
-  const [dateFrom, setDateFrom] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 7);
-    return d.toISOString().split("T")[0];
-  });
-  const [dateTo, setDateTo] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    return d.toISOString().split("T")[0];
-  });
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   // Filter logs by date range inputs
   const filteredLogs = useMemo(() => {
-    const fromTime = new Date(dateFrom).getTime();
-    const toTime = new Date(dateTo).getTime();
+    const fromTime = dateFrom ? new Date(dateFrom + "T00:00:00").getTime() : 0;
+    const toTime = dateTo ? new Date(dateTo + "T23:59:59").getTime() : Infinity;
     return recoInteractions.filter((item) => {
       const ts = new Date(item.timestamp).getTime();
       return ts >= fromTime && ts <= toTime;
@@ -758,6 +750,18 @@ export function RecosAnalyticsView({
               onChange={(e) => setDateTo(e.target.value)}
               className="bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-slate-200 focus:border-amber-400 text-xs text-center"
             />
+          </div>
+          <div className="flex flex-col space-y-1 pt-4">
+            <button
+              onClick={() => {
+                setDateFrom("");
+                setDateTo("");
+              }}
+              className="bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-white rounded px-3 py-1 text-[10px] uppercase font-mono font-bold transition-all h-[26px]"
+              title="Reset query range to show all interactions logs"
+            >
+              All Time
+            </button>
           </div>
         </div>
 
@@ -1266,29 +1270,7 @@ export function TasksView({
         </div>
       </div>
 
-      {emergencyMode && (
-        <div className="bg-red-950/45 border border-red-800/80 rounded-xl p-5 flex flex-col md:flex-row items-center justify-between gap-4 animate-pulse shadow-inner" id="tasks-emergency-banner">
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-full bg-red-900/40 border border-red-500/50 flex items-center justify-center text-lg shrink-0 animate-bounce">
-              🚨
-            </div>
-            <div className="text-left space-y-1">
-              <div className="flex items-center gap-2">
-                <h4 className="text-xs font-bold text-red-400 uppercase tracking-widest font-mono">
-                  ACTIVE CENTRAL HOTEL EMERGENCY PROTOCOL IN EFFECT
-                </h4>
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-              </div>
-              <p className="text-xs text-slate-300 leading-relaxed font-sans max-w-3xl">
-                The backoffice is currently operating under the central broadcast protocol. Emergency channels are broadcast to guest panels. Please verify security parameters, ensure critical tasks are prioritized, and coordinate directly with local emergency teams. Use the central validation panel at the top of the console to stand down the alarm.
-              </p>
-            </div>
-          </div>
-          <div className="text-[10px] bg-red-950/60 font-mono text-red-400 border border-red-900/40 px-3 py-2 rounded-lg max-w-xs shrink-0 select-none text-center">
-            ⚠️ DEACTIVATION SECURED: Enter name & confirm escalation in the banner at the top of this page to deactivate.
-          </div>
-        </div>
-      )}
+
 
       {/* Task Columns */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 divide-y lg:divide-y-0 lg:divide-x divide-slate-800" id="tasks-kanban-columns">
@@ -1658,7 +1640,7 @@ export function CmsView({
 
   // Bulk Upload Panel states (File oriented)
   const [bulkFile, setBulkFile] = useState<File | null>(null);
-  const [bulkUrl, setBulkUrl] = useState("");
+  const [bulkUrl, setBulkUrl] = useState("https://www");
   const [bulkOverwriteConfirm, setBulkOverwriteConfirm] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [bulkError, setBulkError] = useState<string | null>(null);
@@ -1670,28 +1652,28 @@ export function CmsView({
   // Form states
   const [promoTitle, setPromoTitle] = useState("");
   const [promoParagraph, setPromoParagraph] = useState("");
-  const [promoImage, setPromoImage] = useState("");
+  const [promoImage, setPromoImage] = useState("https://www");
   const [promoCtaText, setPromoCtaText] = useState("");
-  const [promoCtaUrl, setPromoCtaUrl] = useState("");
+  const [promoCtaUrl, setPromoCtaUrl] = useState("https://www");
 
   const [facTitle, setFacTitle] = useState("");
   const [facDesc, setFacDesc] = useState("");
   const [facCategory, setFacCategory] = useState("General");
-  const [facImage, setFacImage] = useState("");
+  const [facImage, setFacImage] = useState("https://www");
 
   const [restTitle, setRestTitle] = useState("");
   const [restDesc, setRestDesc] = useState("");
-  const [restImage, setRestImage] = useState("");
+  const [restImage, setRestImage] = useState("https://www");
   const [restCtaEnabled, setRestCtaEnabled] = useState(false);
   const [restCtaText, setRestCtaText] = useState("");
-  const [restCtaUrl, setRestCtaUrl] = useState("");
+  const [restCtaUrl, setRestCtaUrl] = useState("https://www");
 
   // Recos state
   const [recoTitle, setRecoTitle] = useState("");
   const [recoParagraph, setRecoParagraph] = useState("");
-  const [recoImage, setRecoImage] = useState("");
+  const [recoImage, setRecoImage] = useState("https://www");
   const [recoCtaText, setRecoCtaText] = useState("");
-  const [recoCtaUrl, setRecoCtaUrl] = useState("");
+  const [recoCtaUrl, setRecoCtaUrl] = useState("https://www");
   const [recoIsFeatured, setRecoIsFeatured] = useState(true);
 
   // Subsections form (Nested list builder)
@@ -1705,7 +1687,7 @@ export function CmsView({
       setPromoParagraph(item ? item.paragraph : "");
       setPromoImage(item ? item.image_url : "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80");
       setPromoCtaText(item ? item.cta_text : "Discover More");
-      setPromoCtaUrl(item ? item.cta_url : "");
+      setPromoCtaUrl(item ? item.cta_url || "https://www" : "https://www");
     } else if (subTab === "facilities") {
       setFacTitle(item ? item.title : "");
       setFacDesc(item ? item.description : "");
@@ -1717,7 +1699,7 @@ export function CmsView({
       setRestImage(item ? item.image_url : "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80");
       setRestCtaEnabled(item ? !!item.cta_enabled : false);
       setRestCtaText(item ? item.cta_text : "Book A Table");
-      setRestCtaUrl(item ? item.cta_url : "");
+      setRestCtaUrl(item ? item.cta_url || "https://www" : "https://www");
       setSubSections(item && item.subsections ? JSON.parse(JSON.stringify(item.subsections)) : [
         { title: "Weekly Timings", timings: [{ name: "Lunch Hours", openTime: "12:00", closeTime: "15:00" }] }
       ]);
@@ -1726,7 +1708,7 @@ export function CmsView({
       setRecoParagraph(item ? item.paragraph : "");
       setRecoImage(item ? item.image_url : "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&q=80");
       setRecoCtaText(item ? item.cta_text : "More Info");
-      setRecoCtaUrl(item ? item.cta_url : "");
+      setRecoCtaUrl(item ? item.cta_url || "https://www" : "https://www");
       setRecoIsFeatured(item ? !!item.is_featured : true);
     }
     setShowModal(true);
@@ -3352,9 +3334,9 @@ export function GeneralSettingsView({
   };
 
   const [hotelName, setHotelName] = useState("");
-  const [logoUrl, setLogoUrl] = useState("");
+  const [logoUrl, setLogoUrl] = useState("https://www");
   const [conciergeKb, setConciergeKb] = useState("");
-  const [feedbackUrl, setFeedbackUrl] = useState("");
+  const [feedbackUrl, setFeedbackUrl] = useState("https://www");
   const [nightshift, setNightshift] = useState(false);
   const [morningHours, setMorningHours] = useState("");
   const [afternoonHours, setAfternoonHours] = useState("");
@@ -3411,9 +3393,9 @@ export function GeneralSettingsView({
       const prev = prevConfigRef.current;
       if (!prev) {
         setHotelName(config.hotelName || "Sandton Hotel");
-        setLogoUrl(config.logoUrl || "");
+        setLogoUrl(config.logoUrl || "https://www");
         setConciergeKb(config.conciergeKb || "");
-        setFeedbackUrl(config.feedbackUrl || "");
+        setFeedbackUrl(config.feedbackUrl || "https://www");
         setNightshift(!!config.nightshift);
         setMorningHours(config.opHoursMorning || "06:00 - 12:00");
         setAfternoonHours(config.opHoursAfternoon || "12:00 - 18:00");
@@ -3426,13 +3408,13 @@ export function GeneralSettingsView({
           setHotelName(config.hotelName || "Sandton Hotel");
         }
         if (config.logoUrl !== prev.logoUrl) {
-          setLogoUrl(config.logoUrl || "");
+          setLogoUrl(config.logoUrl || "https://www");
         }
         if (config.conciergeKb !== prev.conciergeKb) {
           setConciergeKb(config.conciergeKb || "");
         }
         if (config.feedbackUrl !== prev.feedbackUrl) {
-          setFeedbackUrl(config.feedbackUrl || "");
+          setFeedbackUrl(config.feedbackUrl || "https://www");
         }
         if (config.nightshift !== prev.nightshift) {
           setNightshift(!!config.nightshift);

@@ -50,6 +50,7 @@ import {
 import { GuestSession, Role } from "./types";
 import { cn } from "./lib/utils";
 import GuestPortalView from "./components/GuestPortalView";
+import { TermsOfUseModal, PrivacyPolicyModal } from "./components/LegalModals";
 import {
   ConciergeView,
   RecosAnalyticsView,
@@ -300,6 +301,10 @@ function CheckInScreen() {
   const [guestError, setGuestError] = useState("");
   const [guestLoading, setGuestLoading] = useState(false);
 
+  const [acceptedLegal, setAcceptedLegal] = useState(true);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+
   const [forgotMessage, setForgotMessage] = useState("");
 
   // Clean error messages on modal toggle or category turn
@@ -322,6 +327,11 @@ function CheckInScreen() {
 
     if (!guestSurname.trim()) {
       setGuestError("Surname is required.");
+      return;
+    }
+
+    if (!acceptedLegal) {
+      setGuestError("Please accept the Terms of Use and Privacy Policy to proceed.");
       return;
     }
 
@@ -625,7 +635,52 @@ function CheckInScreen() {
                       required
                     />
                   </div>
+
+                  {/* Terms & Privacy acceptance row with subtle single tick box */}
+                  <div className="pt-2 px-2 text-center md:text-left flex justify-center">
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none text-[9.5px] text-white/50 hover:text-white/70 transition-colors whitespace-nowrap" id="label-legal">
+                      <input
+                        type="checkbox"
+                        checked={acceptedLegal}
+                        onChange={(e) => setAcceptedLegal(e.target.checked)}
+                        className="w-3.5 h-3.5 rounded border border-[#cca472]/20 bg-[#0d0d0d] text-[#cca472] focus:ring-0 accent-[#cca472] cursor-pointer"
+                        id="legal-checkbox"
+                      />
+                      <span className="leading-none text-white/50">
+                        I accept the{" "}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setShowTermsModal(true);
+                          }}
+                          className="text-white/50 font-bold underline hover:text-white/80 bg-transparent border-none p-0 inline cursor-pointer transition-colors"
+                          id="btn-terms"
+                        >
+                          Terms of Use
+                        </button>{" "}
+                        and{" "}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setShowPrivacyModal(true);
+                          }}
+                          className="text-white/50 font-bold underline hover:text-white/80 bg-transparent border-none p-0 inline cursor-pointer transition-colors"
+                          id="btn-privacy"
+                        >
+                          Privacy Policy
+                        </button>
+                        .
+                      </span>
+                    </label>
+                  </div>
                 </div>
+
+                <TermsOfUseModal isOpen={showTermsModal} onClose={() => setShowTermsModal(false)} />
+                <PrivacyPolicyModal isOpen={showPrivacyModal} onClose={() => setShowPrivacyModal(false)} />
 
                 {guestError && (
                   <div className="text-red-400 text-xs flex items-center space-x-1.5 justify-center mt-2.5">
@@ -902,8 +957,7 @@ function isTimeWithinRange(timeStr: string, openTimeStr: string, closeTimeStr: s
 
 // Custom card wrapper measuring visibility to fire impressions once
 function DiscoverRecoCard({ reco, guestSession }: { reco: any; guestSession: any }) {
-  const ref = useState<HTMLDivElement | null>(null)[0];
-  const cardRef = { current: null as HTMLDivElement | null };
+  const cardRef = useRef<HTMLDivElement | null>(null);
   const [hasFired, setHasFired] = useState(false);
 
   useEffect(() => {
@@ -952,7 +1006,7 @@ function DiscoverRecoCard({ reco, guestSession }: { reco: any; guestSession: any
 
   return (
     <div
-      ref={(el) => { cardRef.current = el; }}
+      ref={cardRef}
       className="bg-black/30 border border-slate-800 rounded-xl overflow-hidden shadow-lg hover:border-[var(--color-accent)]/40 transition-all duration-300 flex flex-col justify-between"
     >
       <div>
@@ -1511,6 +1565,17 @@ function OldGuestPortal() {
         })
       });
       
+      await fetch("/api/emergency", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          emergency: true,
+          room: guestSession?.roomNumber || "N/A",
+          guestName: guestSession?.guestName || "Guest",
+          actor: guestSession?.guestName || "Guest"
+        })
+      });
+
       await fetch("/api/sync/tasks/new", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1518,6 +1583,7 @@ function OldGuestPortal() {
           title: "MEDICAL EMERGENCY",
           room: guestSession?.roomNumber || "N/A",
           informedDept: "Concierge",
+          guestName: guestSession?.guestName || "Guest",
           details: {
             alert: "Medical Assistance Needed Immediately",
             timestamp: new Date().toISOString()
@@ -2420,7 +2486,7 @@ function SimpleRecosConsole({
   const [paragraph, setParagraph] = useState("");
   const [imageUrl, setImageUrl] = useState("https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&q=80");
   const [ctaText, setCtaText] = useState("More Info");
-  const [ctaUrl, setCtaUrl] = useState("");
+  const [ctaUrl, setCtaUrl] = useState("https://www");
   const [isFeatured, setIsFeatured] = useState(true);
 
   const [saving, setSaving] = useState(false);
@@ -2433,7 +2499,7 @@ function SimpleRecosConsole({
     setParagraph("");
     setImageUrl("https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&q=80");
     setCtaText("More Info");
-    setCtaUrl("");
+    setCtaUrl("https://www");
     setIsFeatured(true);
     setNewType("card");
     setWizardStep(1);
@@ -2447,7 +2513,7 @@ function SimpleRecosConsole({
     setParagraph(reco.paragraph || "");
     setImageUrl(reco.image_url || "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&q=80");
     setCtaText(reco.cta_text || "More Info");
-    setCtaUrl(reco.cta_url || "");
+    setCtaUrl(reco.cta_url || "https://www");
     setIsFeatured(reco.is_featured !== false);
     setNewType(reco.type || "card");
     setEditingId(reco.id);
@@ -3368,15 +3434,8 @@ export function PartnerRecosConsole({
   recoInteractions: any[];
   onRefresh: () => void;
 }) {
-  const [dateFrom, setDateFrom] = useState(() => {
-    // Default to 15 days ago
-    const d = new Date();
-    d.setDate(d.getDate() - 15);
-    return d.toISOString().split("T")[0];
-  });
-  const [dateTo, setDateTo] = useState(() => {
-    return new Date().toISOString().split("T")[0];
-  });
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [wizardStep, setWizardStep] = useState<1 | 2>(1);
@@ -3387,10 +3446,11 @@ export function PartnerRecosConsole({
   const [paragraph, setParagraph] = useState("");
   const [imageUrl, setImageUrl] = useState("https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&q=80");
   const [ctaText, setCtaText] = useState("More Info");
-  const [ctaUrl, setCtaUrl] = useState("");
+  const [ctaUrl, setCtaUrl] = useState("https://www");
   const [isFeatured, setIsFeatured] = useState(true);
 
   const [saving, setSaving] = useState(false);
+  const [selectedPromoId, setSelectedPromoId] = useState<string | null>(null);
 
   // Custom Delete Confirm Dialog state
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<{ id: string; title: string } | null>(null);
@@ -3420,6 +3480,13 @@ export function PartnerRecosConsole({
   const partnerRecos = useMemo(() => {
     return recos.filter(r => r.company && r.company.trim().toLowerCase() === partnerName.trim().toLowerCase());
   }, [recos, partnerName]);
+
+  // Selected recommendation for high fidelity preview display
+  const activeSelectedPromo = useMemo(() => {
+    if (partnerRecos.length === 0) return null;
+    const found = partnerRecos.find(r => r.id === selectedPromoId);
+    return found || partnerRecos[0];
+  }, [partnerRecos, selectedPromoId]);
 
   // Filter interactions within chosen date range
   const filteredInteractions = useMemo(() => {
@@ -3462,7 +3529,7 @@ export function PartnerRecosConsole({
     setParagraph("");
     setImageUrl("https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&q=80");
     setCtaText("More Info");
-    setCtaUrl("");
+    setCtaUrl("https://www");
     setIsFeatured(true);
     setNewType("card");
     setWizardStep(1);
@@ -3645,7 +3712,7 @@ export function PartnerRecosConsole({
         <div>
           <h2 className="text-xl font-serif font-bold text-white tracking-wide flex items-center gap-2">
             <User className="text-[#cca472]" size={22} />
-            {partnerName} Recommendations Dashboard
+            RECOS Dashboard
           </h2>
           <p className="text-xs text-slate-400 mt-1">
             Grow your brand footprint. Manage and analyze your curated placements live in the guest lounge.
@@ -3656,7 +3723,7 @@ export function PartnerRecosConsole({
           className="bg-[#cca472] hover:bg-[#ba9361] text-black font-semibold text-xs py-2.5 px-4 rounded-xl flex items-center gap-1.5 cursor-pointer uppercase tracking-wider transition-colors active:scale-[0.98]"
         >
           <Plus size={16} />
-          Upload New Ad
+          Create New Ad
         </button>
       </div>
 
@@ -3685,6 +3752,16 @@ export function PartnerRecosConsole({
               className="bg-black/50 border border-white/5 rounded-lg px-2.5 py-1.5 text-slate-300 outline-none focus:border-[#cca472] text-[11px] font-mono"
             />
           </div>
+          <button
+            onClick={() => {
+              setDateFrom("");
+              setDateTo("");
+            }}
+            className="bg-[#cca472]/10 hover:bg-[#cca472]/20 text-[#cca472] border border-[#cca472]/20 transition-all font-mono text-[10px] uppercase font-bold px-3 py-1.5 rounded-lg cursor-pointer flex items-center gap-1"
+            title="Reset range to show All Time interactions"
+          >
+            All Time
+          </button>
           <div className="flex gap-2 pl-2 border-l border-white/5">
             <button
               onClick={handleDownloadCSV}
@@ -3849,83 +3926,124 @@ export function PartnerRecosConsole({
 
         {partnerRecos.length === 0 ? (
           <div className="text-center py-12 text-slate-600 font-mono text-xs">
-            No placements found. Press "Upload New Ad" above to publish your first recommendation!
+            No placements found. Press "Create New Ad" above to publish your first recommendation!
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-white/5 text-slate-400 font-mono uppercase text-[10px]">
-                  <th className="py-3 text-left font-normal pl-2">Recommendation Title</th>
-                  <th className="py-3 text-center font-normal">Placement Type</th>
-                  <th className="py-3 text-center font-normal">Moderation Status</th>
-                  <th className="py-3 text-center font-normal">Views</th>
-                  <th className="py-3 text-center font-normal">Opens</th>
-                  <th className="py-3 text-center font-normal">Clicks</th>
-                  <th className="py-3 text-center font-normal">CTR</th>
-                  <th className="py-3 text-right pr-4 font-normal">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.03]">
-                {partnerRecos.map(reco => {
-                  const recoInteractionsFiltered = filteredInteractions.filter((ri: any) => String(ri.recoId) === String(reco.id));
-                  const impressions = recoInteractionsFiltered.filter((ri: any) => ri.type === "impression").length;
-                  const opens = recoInteractionsFiltered.filter((ri: any) => ri.type === "open").length;
-                  const clicks = recoInteractionsFiltered.filter((ri: any) => ri.type === "click" || ri.type === "conversion").length;
-                  const ctr = opens > 0 ? Math.round((clicks / opens) * 100) : 0;
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Table Selection Side */}
+            <div className="lg:col-span-7 bg-black/15 border border-white/5 rounded-2xl p-4 overflow-x-auto space-y-2">
+              <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest block mb-2">
+                Click a placement row to update preview mockup below:
+              </span>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-white/5 text-slate-400 font-mono uppercase text-[10px]">
+                    <th className="py-3 text-left font-normal pl-2">Recommendation Title</th>
+                    <th className="py-3 text-center font-normal">Placement Type</th>
+                    <th className="py-3 text-center font-normal">Moderation Status</th>
+                    <th className="py-3 text-center font-normal">Views</th>
+                    <th className="py-3 text-center font-normal">Opens</th>
+                    <th className="py-3 text-center font-normal">Clicks</th>
+                    <th className="py-3 text-center font-normal">CTR</th>
+                    <th className="py-3 text-right pr-4 font-normal">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.03]">
+                  {partnerRecos.map(reco => {
+                    const recoInteractionsFiltered = filteredInteractions.filter((ri: any) => String(ri.recoId) === String(reco.id));
+                    const impressions = recoInteractionsFiltered.filter((ri: any) => ri.type === "impression").length;
+                    const opens = recoInteractionsFiltered.filter((ri: any) => ri.type === "open").length;
+                    const clicks = recoInteractionsFiltered.filter((ri: any) => ri.type === "click" || ri.type === "conversion").length;
+                    const ctr = opens > 0 ? Math.round((clicks / opens) * 100) : 0;
+                    const isSelected = activeSelectedPromo?.id === reco.id;
 
-                  return (
-                    <tr key={reco.id} className="hover:bg-white/[0.01]">
-                      <td className="py-4 py-3.5 text-left font-semibold text-slate-250">
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={reco.image_url}
-                            alt=""
-                            className="w-10 h-10 object-cover rounded-lg border border-white/10"
-                            referrerPolicy="no-referrer"
-                          />
-                          <div className="space-y-0.5">
-                            <span className="text-slate-100">{reco.title}</span>
-                            <span className="block text-[10px] font-normal text-slate-500 line-clamp-1">{reco.paragraph}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 text-center font-mono">
-                        <span className="px-2.5 py-1 rounded bg-black/40 border border-white/5 text-slate-400 capitalize">
-                          {reco.type || "card"}
-                        </span>
-                      </td>
-                      <td className="py-4 text-center font-mono font-bold text-[9px] uppercase tracking-wider">
-                        {reco.status === "pending_approval" ? (
-                          <span className="px-2 py-1 rounded-full bg-amber-950/30 text-amber-500 border border-amber-500/10 inline-flex items-center gap-1">
-                            <Clock size={10} />
-                            Pending approval
-                          </span>
-                        ) : (
-                          <span className="px-2 py-1 rounded-full bg-emerald-950/30 text-emerald-500 border border-emerald-500/10 inline-flex items-center gap-1">
-                            <CheckCircle2 size={10} />
-                            Active Live
-                          </span>
+                    return (
+                      <tr 
+                        key={reco.id} 
+                        onClick={() => setSelectedPromoId(reco.id)}
+                        className={cn(
+                          "hover:bg-white/[0.02] cursor-pointer transition-all border-l-2",
+                          isSelected ? "bg-[#cca472]/10 border-[#cca472]" : "border-transparent"
                         )}
-                      </td>
-                      <td className="py-4 text-center font-mono text-slate-300">{impressions}</td>
-                      <td className="py-4 text-center font-mono text-slate-300">{opens}</td>
-                      <td className="py-4 text-center font-mono text-slate-300">{clicks}</td>
-                      <td className="py-4 text-center font-mono text-[#cca472] font-semibold">{ctr}%</td>
-                      <td className="py-4 text-right pr-4">
-                        <button
-                          onClick={(e) => handleDeleteClick(reco.id, reco.title, e)}
-                          className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-white/5 rounded-lg transition-all cursor-pointer inline-flex items-center"
-                          title="Delete Listing"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      >
+                        <td className="py-4 py-3.5 text-left font-semibold text-slate-250 pl-2">
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={reco.image_url}
+                              alt=""
+                              className="w-10 h-10 object-cover rounded-lg border border-white/10"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div className="space-y-0.5">
+                              <span className="text-slate-100 block truncate max-w-[150px]">{reco.title}</span>
+                              <span className="block text-[10px] font-normal text-slate-500 line-clamp-1 max-w-[150px]">{reco.paragraph}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 text-center font-mono">
+                          <span className="px-2.5 py-1 rounded bg-black/40 border border-white/5 text-slate-400 capitalize">
+                            {reco.type || "card"}
+                          </span>
+                        </td>
+                        <td className="py-4 text-center font-mono font-bold text-[9px] uppercase tracking-wider">
+                          {reco.status === "pending_approval" ? (
+                            <span className="px-2 py-1 rounded-full bg-amber-955/30 text-amber-500 border border-amber-500/10 inline-flex items-center gap-1">
+                              Pending
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 rounded-full bg-emerald-955/30 text-emerald-500 border border-emerald-500/10 inline-flex items-center gap-1">
+                              Active
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-4 text-center font-mono text-slate-300">{impressions}</td>
+                        <td className="py-4 text-center font-mono text-slate-300">{opens}</td>
+                        <td className="py-4 text-center font-mono text-slate-300">{clicks}</td>
+                        <td className="py-4 text-center font-mono text-[#cca472] font-semibold">{ctr}%</td>
+                        <td className="py-4 text-right pr-4" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={(e) => handleDeleteClick(reco.id, reco.title, e)}
+                            className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-white/5 rounded-lg transition-all cursor-pointer inline-flex items-center"
+                            title="Delete Listing"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mockup Preview Side */}
+            <div className="lg:col-span-5 bg-[#080808] border border-white/5 rounded-3xl p-5 shadow-inner space-y-4">
+              <div className="border-b border-white/5 pb-2.5">
+                <span className="text-[10px] font-mono text-[#cca472] font-bold uppercase tracking-[0.25em] flex items-center gap-1.5 justify-center">
+                  <span className="w-2 h-1.5 rounded-full bg-[#cca472] animate-pulse" />
+                  Live Preview Mockup
+                </span>
+                <p className="text-[10px] text-center text-slate-400 leading-normal font-sans mt-1">
+                  Active presentation on guests' lounge devices. Placements are finalized once live and cannot be edited. Delete the listing and submit a fresh one to make updates.
+                </p>
+              </div>
+
+              {activeSelectedPromo ? (
+                <div className="flex justify-center transition-all">
+                  <AdLivePreview
+                    title={activeSelectedPromo.title}
+                    paragraph={activeSelectedPromo.paragraph}
+                    imageUrl={activeSelectedPromo.image_url}
+                    ctaText={activeSelectedPromo.cta_text || "MORE INFO"}
+                    type={activeSelectedPromo.type || "card"}
+                  />
+                </div>
+              ) : (
+                <div className="h-64 flex items-center justify-center text-slate-600 font-mono text-xs">
+                  No active placement selected.
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -4140,6 +4258,10 @@ function BackofficeConsole() {
   const [restaurants, setRestaurants] = useState<any[]>([]);
   const [recos, setRecos] = useState<any[]>([]);
   const [emergencyMode, setEmergencyMode] = useState<boolean>(false);
+  const [emergencyRoom, setEmergencyRoom] = useState<string>("");
+  const [emergencyGuestName, setEmergencyGuestName] = useState<string>("");
+  const [emergencyEscalated, setEmergencyEscalated] = useState<boolean>(false);
+  const [emergencyAttendant, setEmergencyAttendant] = useState<string>("");
   const [chatbotStatus, setChatbotStatus] = useState<Record<string, boolean>>({});
   const [staffList, setStaffList] = useState<any[]>([]);
 
@@ -4172,6 +4294,80 @@ function BackofficeConsole() {
   const [deactivateName, setDeactivateName] = useState("");
   const [confirmEscalation, setConfirmEscalation] = useState(false);
   const [isDeactivating, setIsDeactivating] = useState(false);
+
+  // Siren Audio Chime States & Refs using Web Audio API
+  const [sirenMuted, setSirenMuted] = useState<boolean>(false);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const oscillatorRef = useRef<OscillatorNode | null>(null);
+  const gainRef = useRef<GainNode | null>(null);
+  const sirenIntervalRef = useRef<any>(null);
+
+  const startSiren = () => {
+    try {
+      if (audioCtxRef.current) return; // Already running
+
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
+      audioCtxRef.current = ctx;
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      // High volume, dynamic dual-tone electronic chime
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(880, ctx.currentTime); // D5/A5 chime tones
+      
+      const volume = 0.35; // Loud continuous chime volume (cannot mute)
+      gain.gain.setValueAtTime(volume, ctx.currentTime);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+
+      oscillatorRef.current = osc;
+      gainRef.current = gain;
+
+      let isHigh = false;
+      sirenIntervalRef.current = setInterval(() => {
+        if (ctx && osc && ctx.state === "running") {
+          const targetFreq = isHigh ? 587.33 : 880;
+          osc.frequency.setValueAtTime(targetFreq, ctx.currentTime);
+          isHigh = !isHigh;
+        }
+      }, 500);
+    } catch (err) {
+      console.warn("Could not start siren sound:", err);
+    }
+  };
+
+  const stopSiren = () => {
+    if (sirenIntervalRef.current) {
+      clearInterval(sirenIntervalRef.current);
+      sirenIntervalRef.current = null;
+    }
+    if (oscillatorRef.current) {
+      try {
+        oscillatorRef.current.stop();
+      } catch (e) {}
+      oscillatorRef.current = null;
+    }
+    if (audioCtxRef.current) {
+      try {
+        audioCtxRef.current.close();
+      } catch (e) {}
+      audioCtxRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    if (emergencyMode && !emergencyEscalated) {
+      startSiren();
+    } else {
+      stopSiren();
+    }
+    return () => stopSiren();
+  }, [emergencyMode, emergencyEscalated]);
 
   const playAlertSound = () => {
     try {
@@ -4208,22 +4404,22 @@ function BackofficeConsole() {
   };
 
   useEffect(() => {
-    if (emergencyMode) {
+    if (emergencyMode && !emergencyEscalated) {
       playAlertSound();
       const timer = setInterval(() => {
         playAlertSound();
       }, 7000); // sound ding/chime every 7s
       return () => clearInterval(timer);
     }
-  }, [emergencyMode]);
+  }, [emergencyMode, emergencyEscalated]);
 
   const handleStopEmergency = async () => {
-    if (!deactivateName.trim()) {
-      alert("A responder name is required to stop the central emergency protocol.");
+    if (!emergencyEscalated) {
+      alert("The emergency must be escalated via WhatsApp before you can stop the alarm.");
       return;
     }
-    if (!confirmEscalation) {
-      alert("You must confirm escalation to proceed.");
+    if (!emergencyAttendant || !emergencyAttendant.trim()) {
+      alert("You must enter and confirm who accepted/attends to this emergency first.");
       return;
     }
     setIsDeactivating(true);
@@ -4233,8 +4429,8 @@ function BackofficeConsole() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           emergency: false,
-          actor: deactivateName,
-          escalated: confirmEscalation
+          actor: emergencyAttendant,
+          escalated: true
         })
       });
       if (res.ok) {
@@ -4242,11 +4438,48 @@ function BackofficeConsole() {
         setConfirmEscalation(false);
         playChime();
         await syncBackofficeData(true);
+      } else {
+        const errJson = await res.json();
+        alert(errJson.error || "Failed to stop emergency.");
       }
     } catch (err) {
       console.error("Failed to stop emergency lockdown:", err);
     } finally {
       setIsDeactivating(false);
+    }
+  };
+
+  const handleEscalateAction = async () => {
+    try {
+      const res = await fetch("/api/emergency", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ escalated: true })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setEmergencyEscalated(!!data.emergencyEscalated);
+        await syncBackofficeData(true);
+      }
+    } catch (e) {
+      console.error("Escalation action failed:", e);
+    }
+  };
+
+  const handleUpdateAttendant = async (name: string) => {
+    try {
+      const res = await fetch("/api/emergency", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ attendant: name })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setEmergencyAttendant(data.emergencyAttendant || "");
+        await syncBackofficeData(true);
+      }
+    } catch (e) {
+      console.error("Attendant update failed:", e);
     }
   };
 
@@ -4364,6 +4597,10 @@ function BackofficeConsole() {
         setRestaurants(json.masterRestaurants || []);
         setRecos(json.masterRecos || []);
         setEmergencyMode(!!json.emergencyMode);
+        setEmergencyRoom(json.emergencyRoom || "");
+        setEmergencyGuestName(json.emergencyGuestName || "");
+        setEmergencyEscalated(!!json.emergencyEscalated);
+        setEmergencyAttendant(json.emergencyAttendant || "");
         setChatbotStatus(json.chatbotStatus || {});
         setStaffList(json.staffLogons || []);
       }
@@ -4506,81 +4743,125 @@ function BackofficeConsole() {
 
   return (
     <div className="flex-1 flex flex-col bg-[#0d0d0d] min-h-screen text-slate-100 font-sans selection:bg-[#cca472]/30">
-      {/* CRITICAL EMERGENCY BANNER */}
+      {/* CRITICAL EMERGENCY TOP ALARM SYSTEM (NOT part of concierge; independent top-level broad panel) */}
       {emergencyMode && (
-        <div className="bg-red-950/95 border-b border-red-500 text-white px-10 py-5 font-sans relative z-50 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 shadow-2xl animate-pulse">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-red-600 border border-red-400 flex items-center justify-center text-xl shrink-0 shadow-lg shadow-red-950/50">
-              🚨
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-3">
-                <span className="font-mono text-[10px] font-extrabold uppercase tracking-widest bg-red-800 text-white px-2.5 py-0.5 rounded">
-                  CRITICAL ALARM
-                </span>
-                <h2 className="font-serif font-extrabold text-sm tracking-wide text-red-500 uppercase">
-                  Active Central Hotel Emergency Protocol In Effect
+        <div className="bg-red-600 border-b-4 border-red-800 text-white w-full select-none shrink-0 relative z-50 shadow-2xl animate-pulse" id="emergency-critical-top-bar">
+          <div className="max-w-[1800px] mx-auto px-10 py-5 flex flex-col xl:flex-row items-center justify-between gap-6">
+            
+            {/* Short Big Text: Room Number, Title, Surname - EMERGENCY! */}
+            <div className="flex items-center gap-4 text-left">
+              <span className="text-3xl animate-bounce">🚨</span>
+              <div className="space-y-0.5">
+                <h2 className="text-xl md:text-2xl font-sans font-black tracking-tight uppercase text-white drop-shadow-md">
+                  ROOM {emergencyRoom || "N/A"} - {String(emergencyGuestName || "GUEST").toUpperCase()} - EMERGENCY!
                 </h2>
+                <p className="text-[10px] bg-red-950/40 text-red-100 px-2 py-0.5 rounded font-mono inline-block font-semibold">
+                  STATUS: WAITING FOR STAFF CONFIRMATION & ESCALATION PROTOCOL
+                </p>
               </div>
-              <p className="text-[11px] text-slate-300 font-sans max-w-2xl leading-relaxed">
-                Central broadcasts are currently push-notifying active guests. All systems are restricted to standby state. This alarm can <strong>only</strong> be deactivated below once escalation is confirmed and documented.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap lg:flex-nowrap items-center gap-4 bg-black/45 border border-red-900/40 p-4 rounded-2xl w-full xl:w-auto">
-            <div className="flex flex-wrap items-center gap-3">
-              <input
-                type="text"
-                value={deactivateName}
-                onChange={(e) => setDeactivateName(e.target.value)}
-                placeholder="Escalated to (Your Name)..."
-                className="bg-black/60 border border-red-800/60 focus:border-red-500 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none placeholder-slate-500 font-sans min-w-[200px]"
-              />
-              <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-300">
-                <input
-                  type="checkbox"
-                  checked={confirmEscalation}
-                  onChange={(e) => setConfirmEscalation(e.target.checked)}
-                  className="w-4 h-4 accent-red-650 rounded bg-black border-red-800/60 cursor-pointer"
-                />
-                <span>I confirm I've escalated this matter</span>
-              </label>
             </div>
 
-            <button
-              type="button"
-              onClick={handleStopEmergency}
-              disabled={isDeactivating || !deactivateName.trim() || !confirmEscalation}
-              className="py-2.5 px-5 rounded-xl text-[11px] font-mono font-bold tracking-wider bg-red-600 hover:bg-red-500 disabled:opacity-40 disabled:hover:bg-red-650 disabled:cursor-not-allowed text-white transition-all shadow-md active:scale-95 cursor-pointer uppercase flex items-center justify-center min-w-[210px]"
-            >
-              {isDeactivating ? "Deactivating..." : "Deactivate Alarm Protocol"}
-            </button>
+            {/* Steps & Actions */}
+            <div className="flex flex-wrap items-center gap-5 w-full xl:w-auto justify-end">
+              
+              {/* STEP 1: Escalate via WhatsApp */}
+              <div className="flex items-center gap-3 bg-black/35 rounded-xl p-2.5 border border-red-700/55 shadow-inner">
+                <span className="font-mono text-[10px] text-red-200 font-bold uppercase tracking-wider">
+                  STEP 1:
+                </span>
+                {emergencyEscalated ? (
+                  <span className="text-xs font-bold text-green-400 bg-green-950/85 px-3 py-1.5 rounded-lg border border-green-500/30 flex items-center gap-1.5 select-none">
+                    ✓ Sent to WhatsApp
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const whatsappText = `🚨 IMMEDIATE EMERGENCY PROTOCOL: Room ${emergencyRoom || "N/A"} - ${emergencyGuestName || "Guest"} has triggered a CRITICAL SOS Alert! Assist immediately!`;
+                      const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(whatsappText)}`;
+                      window.open(whatsappUrl, "_blank");
+                      
+                      // Escalate on server
+                      try {
+                        const res = await fetch("/api/emergency", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ escalated: true })
+                        });
+                        if (res.ok) {
+                          setEmergencyEscalated(true);
+                          await syncBackofficeData(true);
+                        }
+                      } catch (err) {
+                        console.error(err);
+                      }
+                    }}
+                    className="bg-green-600 hover:bg-green-550 text-white font-sans font-bold text-xs py-1.5 px-3 rounded-lg flex items-center gap-1.5 transition-all shadow-md cursor-pointer animate-bounce"
+                  >
+                    💬 Send to WhatsApp
+                  </button>
+                )}
+              </div>
+
+              {/* STEP 2: Enter message & SUBMIT */}
+              <div className="flex items-center gap-3 bg-black/35 rounded-xl p-2.5 border border-red-700/55 shadow-inner">
+                <span className="font-mono text-[10px] text-red-200 font-bold uppercase tracking-wider">
+                  STEP 2:
+                </span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={emergencyAttendant}
+                    onChange={(e) => setEmergencyAttendant(e.target.value)}
+                    placeholder="Enter message/attendant info..."
+                    className="bg-black/45 border border-red-700/80 rounded-lg px-3 py-1.5 text-xs text-white placeholder-red-300/40 focus:outline-none focus:border-red-500 font-sans w-[220px]"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleStopEmergency}
+                    disabled={isDeactivating || !emergencyEscalated || !emergencyAttendant.trim()}
+                    className="bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-red-700 font-sans font-extrabold text-xs py-1.5 px-4 rounded-lg transition-all shadow-lg select-none cursor-pointer flex items-center justify-center uppercase min-h-[32px]"
+                  >
+                    {isDeactivating ? "Submitting..." : "SUBMIT"}
+                  </button>
+                </div>
+              </div>
+
+              {(!emergencyEscalated || !emergencyAttendant.trim()) && (
+                <div className="text-[10px] text-red-200 bg-red-950/40 border border-red-700/30 px-2 py-1 rounded font-mono font-bold uppercase select-none">
+                  ⚠️ Locked (Perform Step 1 & 2)
+                </div>
+              )}
+
+            </div>
           </div>
         </div>
       )}
 
       {/* Top Header Bar */}
-      <header className="px-10 py-6 border-b border-white/[0.04] bg-[#0d0d0d] flex justify-between items-center select-none shrink-0">
-        <h1 className="font-serif text-[32px] tracking-wide text-[#cca472] font-semibold leading-none">
-          {role === "recos"
-            ? "RECOS Admin"
-            : role === "recos_partner"
-            ? `${staffName} (Partner)`
-            : role === "staff"
-            ? "Staff"
-            : role === "manager"
-            ? "Admin Staff"
-            : role === "admin"
-            ? "Backoffice"
-            : "Backoffice Console"}
-        </h1>
-        <button
-          onClick={() => setShowSaveConfirm(true)}
-          className="text-xs font-sans font-bold uppercase tracking-widest text-[#cca472] hover:text-[#e6c687] transition-colors cursor-pointer"
-        >
-          SAVE CHANGES
-        </button>
+      <header className="px-10 py-6 border-b border-white/[0.04] bg-[#0d0d0d] select-none shrink-0" id="backoffice-main-header">
+        <div className="w-full flex justify-between items-center gap-4">
+          <h1 className="font-serif text-[32px] tracking-wide text-[#cca472] font-semibold leading-none">
+            {role === "recos"
+              ? "RECOS Admin"
+              : role === "recos_partner"
+              ? `${staffName} (Partner)`
+              : role === "staff"
+              ? "Staff"
+              : role === "manager"
+              ? "Admin Staff"
+              : role === "admin"
+              ? "Backoffice"
+              : "Backoffice Console"}
+          </h1>
+
+          <button
+            onClick={() => setShowSaveConfirm(true)}
+            className="text-xs font-sans font-bold uppercase tracking-widest text-[#cca472] hover:text-[#e6c687] transition-colors cursor-pointer"
+          >
+            SAVE CHANGES
+          </button>
+        </div>
       </header>
 
       {/* SAVE CHANGES CONFIRMATION POPUP MODAL */}
@@ -4798,4 +5079,4 @@ export default function App() {
       <MainApp />
     </RoleProvider>
   );
-}
+}///

@@ -2,37 +2,13 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import fs from "fs";
-import { initializeApp } from "firebase/app";
-import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
 import { GoogleGenAI, Type } from "@google/genai";
 // @ts-ignore
 import mammoth from "mammoth";
 
 let bootupPhaseActive = true;
 
-const firebaseConfigPath = process.env.FIREBASE_CONFIG_PATH || "./firebase-applet-config.json";
-let firebaseConfig: any = null;
-try {
-  const absoluteConfigPath = path.resolve(firebaseConfigPath);
-  if (fs.existsSync(absoluteConfigPath)) {
-    firebaseConfig = JSON.parse(fs.readFileSync(absoluteConfigPath, "utf-8"));
-  } else {
-    console.warn(`[FIRESTORE] Config file not found at ${absoluteConfigPath}`);
-  }
-} catch (err) {
-  console.error("[FIRESTORE] Failed to load/parse firebase config:", err);
-}
-
 let db: any = null;
-if (firebaseConfig) {
-  try {
-    const firebaseApp = initializeApp(firebaseConfig);
-    db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
-    console.log("[FIRESTORE] Standard Firestore initialized successfully with database ID:", firebaseConfig.firestoreDatabaseId);
-  } catch (err) {
-    console.error("[FIRESTORE] Error initializing app/database:", err);
-  }
-}
 
 async function startServer() {
   const app = express();
@@ -263,6 +239,10 @@ async function startServer() {
   ];
 
   let emergencyMode = false;
+  let emergencyEscalated = false;
+  let emergencyAttendant = "";
+  let emergencyRoom = "";
+  let emergencyGuestName = "";
   const chatbotStatus: Record<string, boolean> = {
     "104": true,
     "205": false,
@@ -354,6 +334,18 @@ async function startServer() {
   if (localBackupData.emergency !== undefined) {
     emergencyMode = !!localBackupData.emergency;
   }
+  if (localBackupData.emergencyRoom !== undefined) {
+    emergencyRoom = String(localBackupData.emergencyRoom || "");
+  }
+  if (localBackupData.emergencyGuestName !== undefined) {
+    emergencyGuestName = String(localBackupData.emergencyGuestName || "");
+  }
+  if (localBackupData.emergencyEscalated !== undefined) {
+    emergencyEscalated = !!localBackupData.emergencyEscalated;
+  }
+  if (localBackupData.emergencyAttendant !== undefined) {
+    emergencyAttendant = String(localBackupData.emergencyAttendant || "");
+  }
   if (Array.isArray(localBackupData.feedbackLogs)) {
     feedbackLogs.length = 0;
     feedbackLogs.push(...localBackupData.feedbackLogs);
@@ -393,73 +385,29 @@ async function startServer() {
     chatMessages.push(...localBackupData.chatMessages);
   }
 
-  let loadedFromFirestore = false;
-  if (db) {
-    try {
-      console.log("[BOOT] Attempting to read hotel_info from Firestore...");
-      const docRef = doc(db, "hotels", "_sandton", "knowledge", "hotel_info");
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const firestoreData = docSnap.data();
-        if (firestoreData && (firestoreData.config || firestoreData.promotions || firestoreData.facilities || firestoreData.restaurants || firestoreData.recos)) {
-          console.log("[BOOT] Successfully read hotel information from Firestore!");
-          
-          if (firestoreData.config) {
-            for (const key in masterConfig) {
-              delete (masterConfig as any)[key];
-            }
-            Object.assign(masterConfig, firestoreData.config);
-          }
-          if (Array.isArray(firestoreData.promotions)) {
-            masterPromotions.length = 0;
-            masterPromotions.push(...firestoreData.promotions);
-          }
-          if (Array.isArray(firestoreData.facilities)) {
-            masterFacilities.length = 0;
-            masterFacilities.push(...firestoreData.facilities);
-          }
-          if (Array.isArray(firestoreData.restaurants)) {
-            masterRestaurants.length = 0;
-            masterRestaurants.push(...firestoreData.restaurants);
-          }
-          if (Array.isArray(firestoreData.recos)) {
-            masterRecos.length = 0;
-            masterRecos.push(...firestoreData.recos);
-          }
-          
-          loadedFromFirestore = true;
-        }
-      }
-    } catch (err) {
-      console.error("[FIRESTORE FALLBACK] Serving from local in-memory state. Boot read failed:", err);
+  console.log("[BOOT] Loading from local backup");
+  
+  if (localBackupData.config) {
+    for (const key in masterConfig) {
+      delete (masterConfig as any)[key];
     }
+    Object.assign(masterConfig, localBackupData.config);
   }
-
-  if (!loadedFromFirestore) {
-    console.log("[BOOT] No Firestore data found, loading from local backup");
-    
-    if (localBackupData.config) {
-      for (const key in masterConfig) {
-        delete (masterConfig as any)[key];
-      }
-      Object.assign(masterConfig, localBackupData.config);
-    }
-    if (Array.isArray(localBackupData.promotions)) {
-      masterPromotions.length = 0;
-      masterPromotions.push(...localBackupData.promotions);
-    }
-    if (Array.isArray(localBackupData.facilities)) {
-      masterFacilities.length = 0;
-      masterFacilities.push(...localBackupData.facilities);
-    }
-    if (Array.isArray(localBackupData.restaurants)) {
-      masterRestaurants.length = 0;
-      masterRestaurants.push(...localBackupData.restaurants);
-    }
-    if (Array.isArray(localBackupData.recos)) {
-      masterRecos.length = 0;
-      masterRecos.push(...localBackupData.recos);
-    }
+  if (Array.isArray(localBackupData.promotions)) {
+    masterPromotions.length = 0;
+    masterPromotions.push(...localBackupData.promotions);
+  }
+  if (Array.isArray(localBackupData.facilities)) {
+    masterFacilities.length = 0;
+    masterFacilities.push(...localBackupData.facilities);
+  }
+  if (Array.isArray(localBackupData.restaurants)) {
+    masterRestaurants.length = 0;
+    masterRestaurants.push(...localBackupData.restaurants);
+  }
+  if (Array.isArray(localBackupData.recos)) {
+    masterRecos.length = 0;
+    masterRecos.push(...localBackupData.recos);
   }
 
   bootupPhaseActive = false;
@@ -484,6 +432,10 @@ async function startServer() {
       tasks: tasks,
       staffLogons: staffLogons,
       emergency: emergencyMode,
+      emergencyRoom: emergencyRoom,
+      emergencyGuestName: emergencyGuestName,
+      emergencyEscalated: emergencyEscalated,
+      emergencyAttendant: emergencyAttendant,
       departments: ["Housekeeping", "Concierge", "Spa", "Butlers"],
       config: masterConfig,
       promotions: masterPromotions,
@@ -505,21 +457,6 @@ async function startServer() {
       console.warn("[BOOT GUARD] Write blocked during initialisation — skipping.");
       return false;
     }
-    if (db) {
-      try {
-        const docRef = doc(db, "hotels", "_sandton", "knowledge", "hotel_info");
-        await setDoc(docRef, {
-          [section]: data,
-          updatedAt: Date.now()
-        }, { merge: true });
-        console.log(`[FIRESTORE] Saved section ${section} successfully.`);
-      } catch (err) {
-        console.error("[FIRESTORE FALLBACK] Serving from local in-memory state. Write to Firestore failed:", err);
-      }
-    } else {
-      console.warn("[FIRESTORE FALLBACK] Serving from local in-memory state. Firestore not initialized.");
-    }
-    
     saveToChatsDb();
     return true;
   }
@@ -547,6 +484,10 @@ async function startServer() {
       chatMessages,
       recoInteractions,
       emergencyMode,
+      emergencyRoom,
+      emergencyGuestName,
+      emergencyEscalated,
+      emergencyAttendant,
       chatbotStatus,
       staffLogons
     });
@@ -618,6 +559,16 @@ async function startServer() {
       details
     };
     tasks.push(newTask);
+    
+    // Auto trigger global emergencyMode if title is MEDICAL EMERGENCY
+    if (title === "MEDICAL EMERGENCY" || String(title).toUpperCase().includes("EMERGENCY")) {
+      emergencyMode = true;
+      emergencyRoom = String(room);
+      emergencyGuestName = String(req.body.guestName || "Guest");
+      emergencyEscalated = false;
+      emergencyAttendant = "";
+    }
+
     saveToChatsDb();
     console.log("[SERVER] Task added successfully:", newTask);
     return res.json({ success: true, task: newTask });
@@ -1390,18 +1341,57 @@ Please generate the next response as the "Recos Chat Assistant" (the Guest Assis
 
   // POST /api/emergency
   app.post("/api/emergency", (req, res) => {
-    const { emergency, actor, escalated } = req.body;
-    emergencyMode = !!emergency;
-    if (!emergency && actor) {
-      console.log(`[SERVER] Emergency mode stopped by ${actor}. Escalated checked: ${escalated}`);
+    const { emergency, actor, escalated, attendant, room, guestName } = req.body;
+    
+    if (emergency !== undefined) {
+      emergencyMode = !!emergency;
+    }
+    
+    if (room !== undefined) {
+      emergencyRoom = String(room || "");
+    }
+    
+    if (guestName !== undefined) {
+      emergencyGuestName = String(guestName || "");
+    }
+    
+    if (escalated !== undefined) {
+      emergencyEscalated = !!escalated;
+    }
+    
+    if (attendant !== undefined) {
+      emergencyAttendant = String(attendant || "");
+    }
+
+    if (emergency === false) {
+      if (!emergencyEscalated) {
+        return res.status(400).json({ success: false, error: "Cannot deactivate: The emergency must be escalated via WhatsApp first!" });
+      }
+      if (!emergencyAttendant || emergencyAttendant.trim() === "") {
+        return res.status(400).json({ success: false, error: "Cannot deactivate: You must confirm who accepted the emergency!" });
+      }
+
+      // Clear values when stopped
+      emergencyEscalated = false;
+      emergencyAttendant = "";
+      emergencyRoom = "";
+      emergencyGuestName = "";
+      console.log(`[SERVER] Emergency mode stopped by ${actor}.`);
       chatMessages.push({
         role: "assistant",
-        content: `🚨 SYSTEM ALERT: Emergency lockdown protocol has been deactivated by: ${actor}. Escalation to local authorities was confirmed.`,
+        content: `🚨 SYSTEM ALERT: Emergency lockdown protocol has been deactivated by: ${actor || "Admin"}.`,
         timestamp: new Date().toLocaleTimeString(),
         senderName: "System",
         roomNumber: "0"
       });
-    } else if (emergency) {
+    } else if (emergency === true) {
+      if (!emergencyRoom) {
+        emergencyRoom = "CENTRAL BROADCAST";
+      }
+      if (!emergencyGuestName) {
+        emergencyGuestName = "ALL SUITES / DEPARTMENTS";
+      }
+      console.log(`[SERVER] Emergency mode activated! Room: ${emergencyRoom}, Guest: ${emergencyGuestName}`);
       chatMessages.push({
         role: "assistant",
         content: `🚨 SYSTEM ALERT: Emergency lockdown protocol has been activated! Central broadcast active on all panels.`,
@@ -1409,10 +1399,27 @@ Please generate the next response as the "Recos Chat Assistant" (the Guest Assis
         senderName: "System",
         roomNumber: "0"
       });
+    } else if (escalated || attendant !== undefined) {
+      console.log(`[SERVER] Emergency state updated. Escalated: ${emergencyEscalated}, Attendant: ${emergencyAttendant}`);
+      chatMessages.push({
+        role: "assistant",
+        content: `🚨 SYSTEM ALERT: Emergency update - Attending: ${emergencyAttendant || "None"}. Escalated: ${emergencyEscalated ? "Yes" : "No"}.`,
+        timestamp: new Date().toLocaleTimeString(),
+        senderName: "System",
+        roomNumber: "0"
+      });
     }
+    
     saveToChatsDb();
     console.log("[SERVER] Emergency mode status changed:", emergencyMode);
-    return res.json({ success: true, emergencyMode });
+    return res.json({ 
+      success: true, 
+      emergencyMode, 
+      emergencyRoom,
+      emergencyGuestName,
+      emergencyEscalated, 
+      emergencyAttendant 
+    });
   });
 
   // POST /api/admin/save
@@ -1460,53 +1467,9 @@ Please generate the next response as the "Recos Chat Assistant" (the Guest Assis
 
   // POST /api/admin/resync
   app.post("/api/admin/resync", async (req, res) => {
-    if (!db) {
-      return res.status(503).json({ success: false, error: "Firestore is not initialized." });
-    }
-    try {
-      const docRef = doc(db, "hotels", "_sandton", "knowledge", "hotel_info");
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const firestoreData = docSnap.data();
-        let updatedAt = Date.now();
-        if (firestoreData) {
-          if (firestoreData.updatedAt) {
-            updatedAt = firestoreData.updatedAt;
-          }
-          if (firestoreData.config) {
-            for (const key in masterConfig) {
-              delete (masterConfig as any)[key];
-            }
-            Object.assign(masterConfig, firestoreData.config);
-          }
-          if (Array.isArray(firestoreData.promotions)) {
-            masterPromotions.length = 0;
-            masterPromotions.push(...firestoreData.promotions);
-          }
-          if (Array.isArray(firestoreData.facilities)) {
-            masterFacilities.length = 0;
-            masterFacilities.push(...firestoreData.facilities);
-          }
-          if (Array.isArray(firestoreData.restaurants)) {
-            masterRestaurants.length = 0;
-            masterRestaurants.push(...firestoreData.restaurants);
-          }
-          if (Array.isArray(firestoreData.recos)) {
-            masterRecos.length = 0;
-            masterRecos.push(...firestoreData.recos);
-          }
-        }
-        
-        saveToChatsDb();
-        console.log("[SERVER] Manual resync success from Firestore.");
-        return res.json({ success: true, updatedAt });
-      } else {
-        return res.status(404).json({ success: false, error: "No Firestore data found." });
-      }
-    } catch (err: any) {
-      console.error("[FIRESTORE FALLBACK] Serving from local in-memory state. Resync failed:", err);
-      return res.status(500).json({ success: false, error: err.message || "Resync failed." });
-    }
+    saveToChatsDb();
+    console.log("[SERVER] Manual resync completed locally.");
+    return res.json({ success: true, updatedAt: Date.now(), message: "Local backup sync complete." });
   });
 
   // STAFF REGISTRY CRUD API

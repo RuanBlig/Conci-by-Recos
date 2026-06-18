@@ -41,9 +41,20 @@ body {
   padding: 0;
 }
 
-/* Ensure all paragraph elements and their inner text elements are at least 13px */
+/* Ensure all paragraph elements and their inner text elements are at least 13px and text is white #ffffff */
 p {
   font-size: 13px;
+  color: #ffffff !important;
+}
+
+p span, p strong, p em, p label, p a, p button {
+  color: #ffffff !important;
+}
+
+/* Specific black exception override for selected feedback elements */
+#feedback-paragraph,
+#feedback-paragraph * {
+  color: #1c1c1c !important;
 }
 
 p.text-xs,

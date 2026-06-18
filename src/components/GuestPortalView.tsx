@@ -662,6 +662,17 @@ export default function GuestPortalView() {
         })
       });
       
+      await fetch("/api/emergency", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          emergency: true,
+          room: guestSession?.roomNumber || "N/A",
+          guestName: guestSession?.guestName || "Guest",
+          actor: guestSession?.guestName || "Guest"
+        })
+      });
+
       await fetch("/api/sync/tasks/new", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -669,6 +680,7 @@ export default function GuestPortalView() {
           title: "MEDICAL EMERGENCY",
           room: guestSession?.roomNumber || "N/A",
           informedDept: "Concierge",
+          guestName: guestSession?.guestName || "Guest",
           details: {
             alert: "Medical Assistance Needed Immediately",
             timestamp: new Date().toISOString()
@@ -1090,7 +1102,7 @@ export default function GuestPortalView() {
             <h3 className="font-serif text-[26px] tracking-normal text-[#1C1C1C] font-medium leading-none">
               Loved Your Stay?
             </h3>
-            <p className="text-[#4F4F4F] text-[15px] leading-relaxed max-w-[280px] mx-auto font-sans font-normal">
+            <p id="feedback-paragraph" className="text-[#4f4f4f] text-[15px] leading-relaxed max-w-[280px] mx-auto font-sans font-normal">
               Your feedback helps future guests discover the best of @Sandton
             </p>
             <div className="pt-2">
