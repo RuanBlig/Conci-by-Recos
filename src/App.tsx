@@ -389,7 +389,7 @@ function CheckInScreen() {
         setAdminPassword("");
         return;
       } else {
-        setAdminError("Invalid partner passkey. Try using 'passwordabc'.");
+        setAdminError("Invalid partner passkey.");
         return;
       }
     }
@@ -757,7 +757,7 @@ function CheckInScreen() {
                   <div className="space-y-1">
                     <input
                       type="password"
-                      placeholder={adminCategory === "Recos" && recosSubMode === "partner" ? "Passkey (use passwordabc)" : "Password"}
+                      placeholder={adminCategory === "Recos" && recosSubMode === "partner" ? "Passkey" : "Password"}
                       value={adminPassword}
                       onChange={(e) => {
                         setAdminPassword(e.target.value);
@@ -767,11 +767,6 @@ function CheckInScreen() {
                       className="w-full bg-[#0d0d0d] hover:bg-[#121212] border border-slate-900 text-white placeholder-stone-600 py-3.5 px-5 rounded-2xl focus:outline-none focus:border-[#cca472]/45 text-sm transition-colors duration-150"
                       required
                     />
-                    {adminCategory === "Recos" && recosSubMode === "partner" && (
-                      <p className="text-[9.5px] text-[#cca472]/70 font-mono pl-1 py-1 leading-normal">
-                        💡 Log in with any Company Name. Passkey: <span className="text-[#cca472] font-bold">passwordabc</span>
-                      </p>
-                    )}
                   </div>
                 </div>
 
