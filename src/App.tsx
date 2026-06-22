@@ -211,6 +211,83 @@ export function useRole() {
 function MainApp() {
   const { role } = useRole();
 
+  const [resetUsername, setResetUsername] = useState<string | null>(null);
+  const [resetToken, setResetToken] = useState<string | null>(null);
+  const [resetStaffName, setResetStaffName] = useState<string>("");
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetSubmitLoading, setResetSubmitLoading] = useState(false);
+  const [resetPasswordState, setResetPasswordState] = useState("");
+  const [resetConfirmPassword, setResetConfirmPassword] = useState("");
+  const [resetError, setResetError] = useState("");
+  const [resetSuccess, setResetSuccess] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get("action");
+    const user = params.get("user");
+    const token = params.get("token");
+
+    if (action === "reset-password" && user && token) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+      setResetUsername(user);
+      setResetToken(token);
+      setResetLoading(true);
+      
+      fetch(`/api/verify-reset-token?username=${encodeURIComponent(user)}&token=${encodeURIComponent(token)}`)
+        .then(res => res.json())
+        .then(data => {
+          setResetLoading(false);
+          if (data.success) {
+            setResetStaffName(data.name || user);
+          } else {
+            setResetError(data.error || "This password reset token is invalid or has expired.");
+          }
+        })
+        .catch(err => {
+          setResetLoading(false);
+          setResetError("Network failure verifying reset link.");
+          console.error(err);
+        });
+    }
+  }, []);
+
+  const handleResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetError("");
+
+    if (resetPasswordState.length < 4) {
+      setResetError("Password must be at least 4 characters long.");
+      return;
+    }
+    if (resetPasswordState !== resetConfirmPassword) {
+      setResetError("Passwords do not match.");
+      return;
+    }
+
+    setResetSubmitLoading(true);
+    try {
+      const res = await fetch("/api/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: resetUsername,
+          token: resetToken,
+          password: resetPasswordState
+        })
+      });
+      const data = await res.json();
+      setResetSubmitLoading(false);
+      if (res.ok && data.success) {
+        setResetSuccess(true);
+      } else {
+        setResetError(data.error || "Password update failed.");
+      }
+    } catch (err) {
+      setResetSubmitLoading(false);
+      setResetError("Failed to connect to authentication server.");
+    }
+  };
+
   return (
     <div className={cn(
       "min-h-screen text-[var(--color-accent-light)] flex flex-col font-sans transition-colors duration-300",
@@ -254,6 +331,128 @@ function MainApp() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* PASSWORD RESET FLOW OVERLAY */}
+      {resetUsername && resetToken && (
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 z-50 text-left">
+          <div className="bg-[#0f1424] border border-[#cca472]/20 w-full max-w-md rounded-2xl p-8 relative shadow-2xl space-y-4">
+            
+            <div className="flex items-center space-x-2 pb-3 border-b border-slate-800">
+              <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+                <UserCheck size={16} className="text-[#cca472]" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white tracking-wider uppercase font-mono">
+                  Recos Concierge Portal
+                </h4>
+                <p className="text-[10px] text-slate-400 font-mono text-left">Credential Assignment Verification</p>
+              </div>
+            </div>
+
+            {resetLoading ? (
+              <div className="py-12 flex flex-col items-center justify-center space-y-3">
+                <div className="w-8 h-8 border-2 border-[#cca472] border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-[11px] text-slate-400 font-mono">Verifying authorization token...</p>
+              </div>
+            ) : resetSuccess ? (
+              <div className="py-6 text-center space-y-4 font-sans">
+                <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center border border-green-500/20 mx-auto">
+                  <CheckCircle2 className="text-green-500" size={24} />
+                </div>
+                <div className="space-y-1">
+                  <h5 className="text-base font-bold text-white font-serif">Credentials Activated</h5>
+                  <p className="text-xs text-slate-400 leading-normal max-w-xs mx-auto">
+                    Your password has been successfully saved. You can now use your selected password to sign into the system back-office.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setResetUsername(null);
+                    setResetToken(null);
+                    setResetSuccess(false);
+                    setResetPasswordState("");
+                    setResetConfirmPassword("");
+                  }}
+                  className="w-full bg-[#cca472] hover:bg-[#b08b5e] text-[#0d0d0d] font-mono text-xs uppercase font-bold tracking-widest py-3 rounded-xl transition-all cursor-pointer shadow-lg"
+                >
+                  Return to login
+                </button>
+              </div>
+            ) : resetError ? (
+              <div className="py-6 text-center space-y-4">
+                <div className="w-12 h-12 rounded-full bg-rose-500/10 flex items-center justify-center border border-rose-500/20 mx-auto w-fit px-3">
+                  <AlertCircle className="text-rose-400" size={24} />
+                </div>
+                <div className="space-y-1">
+                  <h5 className="text-base font-bold text-white font-serif">Activation Failed</h5>
+                  <p className="text-xs text-slate-400 leading-normal max-w-xs mx-auto">
+                    {resetError}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setResetUsername(null);
+                    setResetToken(null);
+                    setResetError("");
+                  }}
+                  className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-mono text-xs uppercase font-bold tracking-widest py-3 rounded-xl transition-all cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleResetSubmit} className="space-y-4 pt-1 font-sans">
+                <div className="space-y-1 text-left">
+                  <h5 className="text-sm font-semibold text-[#cca472] font-serif text-left">Setup Password for {resetStaffName || resetUsername}</h5>
+                  <p className="text-[11px] text-slate-400 leading-normal text-left">
+                    You are activating your Recos credentials. Please select a robust private password to secure your communications.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex flex-col space-y-1 text-left">
+                    <label className="font-mono text-slate-400 text-[10px] uppercase text-left">New Password</label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="Minimum 4 characters"
+                      value={resetPasswordState}
+                      onChange={(e) => setResetPasswordState(e.target.value)}
+                      className="bg-slate-900 border border-slate-800 rounded-xl p-3 text-slate-100 text-xs focus:border-[#cca472] focus:outline-none focus:ring-1 focus:ring-[#cca472]/30 font-mono"
+                    />
+                  </div>
+                  <div className="flex flex-col space-y-1 text-left">
+                    <label className="font-mono text-slate-400 text-[10px] uppercase text-left">Confirm Password</label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="Confirm new password"
+                      value={resetConfirmPassword}
+                      onChange={(e) => setResetConfirmPassword(e.target.value)}
+                      className="bg-slate-900 border border-slate-800 rounded-xl p-3 text-slate-100 text-xs focus:border-[#cca472] focus:outline-none focus:ring-1 focus:ring-[#cca472]/30 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={resetSubmitLoading}
+                    className="w-full bg-[#cca472] hover:bg-[#b08b5e] disabled:opacity-50 text-slate-950 font-serif tracking-widest font-bold py-3 text-xs rounded-xl transition-all cursor-pointer shadow flex items-center justify-center space-x-2"
+                  >
+                    {resetSubmitLoading ? (
+                      <div className="w-4 h-4 border-2 border-[#0d0d0d] border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <span>ACTIVATE ACCOUNT & SAVE</span>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1182,9 +1381,11 @@ function OldGuestPortal() {
         const isNetworkError = err?.name === "TypeError" || 
                                err?.message?.toLowerCase().includes("fetch") || 
                                err?.message?.toLowerCase().includes("network") ||
-                               err?.message?.toLowerCase().includes("failed");
+                               err?.message?.toLowerCase().includes("failed") ||
+                               err?.message?.toLowerCase().includes("429") ||
+                               err?.message?.toLowerCase().includes("status: 429");
         if (isNetworkError) {
-          console.warn("[GUEST DATA SYNC WARNING] Transient fetch connectivity warning: retaining local state.");
+          console.warn("[GUEST DATA SYNC WARNING] Transient rate-limited or connectivity warning (status: 429 or similar): retaining local state.");
         } else {
           console.error("Failed to sync guest portal collections:", err);
         }
@@ -1419,9 +1620,11 @@ function OldGuestPortal() {
         const isNetworkError = err?.name === "TypeError" || 
                                err?.message?.toLowerCase().includes("fetch") || 
                                err?.message?.toLowerCase().includes("network") ||
-                               err?.message?.toLowerCase().includes("failed");
+                               err?.message?.toLowerCase().includes("failed") ||
+                               err?.message?.toLowerCase().includes("429") ||
+                               err?.message?.toLowerCase().includes("status: 429");
         if (isNetworkError) {
-          console.warn("[CHAT SYNC WARNING] Transient fetch connectivity warning: retaining local state.");
+          console.warn("[CHAT SYNC WARNING] Transient rate-limited or connectivity warning (status: 429 or similar): retaining local state.");
         } else {
           console.error("Error reading initial chats:", err);
         }
@@ -2181,6 +2384,19 @@ function OldGuestPortal() {
                                 <option value="Executive SUV">Executive SUV</option>
                               </select>
                             </div>
+                          </div>
+                        </div>
+
+                        {/* SUBJECT TO AVAILABILITY REMINDER */}
+                        <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-3 flex items-start gap-2 text-left">
+                          <Clock size={14} className="text-[var(--color-accent)] shrink-0 mt-0.5" />
+                          <div className="space-y-0.5">
+                            <span className="text-[9px] font-bold text-[var(--color-accent)] uppercase tracking-wider block">
+                              Subject to Availability Reminder
+                            </span>
+                            <p className="text-[9px] text-slate-450 leading-normal font-light">
+                              All luxury transfers and express shuttles are subject to vehicle and driver availability. We recommend booking in advance.
+                            </p>
                           </div>
                         </div>
 
@@ -4603,9 +4819,11 @@ function BackofficeConsole() {
       const isNetworkError = e?.name === "TypeError" || 
                              e?.message?.toLowerCase().includes("fetch") || 
                              e?.message?.toLowerCase().includes("network") ||
-                             e?.message?.toLowerCase().includes("failed");
+                             e?.message?.toLowerCase().includes("failed") ||
+                             e?.message?.toLowerCase().includes("429") ||
+                             e?.message?.toLowerCase().includes("status: 429");
       if (isNetworkError) {
-        console.warn("[BACKOFFICE SYNC] Transient fetch connectivity warning: retaining local state.");
+        console.warn("[BACKOFFICE SYNC] Transient rate-limited or connectivity warning (status: 429 or similar): retaining local state.");
       } else {
         console.error("Backoffice sync error:", e);
       }

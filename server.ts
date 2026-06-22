@@ -393,6 +393,8 @@ async function startServer() {
     }
     Object.assign(masterConfig, localBackupData.config);
   }
+  // Exclusive promotions and hotel facilities are intentionally not restored from saved state as per user instructions
+  /*
   if (Array.isArray(localBackupData.promotions)) {
     masterPromotions.length = 0;
     masterPromotions.push(...localBackupData.promotions);
@@ -401,6 +403,7 @@ async function startServer() {
     masterFacilities.length = 0;
     masterFacilities.push(...localBackupData.facilities);
   }
+  */
   if (Array.isArray(localBackupData.restaurants)) {
     masterRestaurants.length = 0;
     masterRestaurants.push(...localBackupData.restaurants);
@@ -426,6 +429,11 @@ async function startServer() {
         console.error("Error reading db content:", err);
       }
     }
+    // Intentionally clean up and skip saving promotions and facilities in the persistent DB file
+    if (originalDbContent) {
+      delete originalDbContent.promotions;
+      delete originalDbContent.facilities;
+    }
     const dataToSave = {
       ...originalDbContent,
       chats: chatMessages,
@@ -438,8 +446,6 @@ async function startServer() {
       emergencyAttendant: emergencyAttendant,
       departments: ["Housekeeping", "Concierge", "Spa", "Butlers"],
       config: masterConfig,
-      promotions: masterPromotions,
-      facilities: masterFacilities,
       restaurants: masterRestaurants,
       recos: masterRecos
     };
@@ -560,6 +566,11 @@ async function startServer() {
     };
     tasks.push(newTask);
     
+    // Auto-send task creation notification email to hello@brandhue.studio
+    sendTaskNotificationEmail(newTask, "Created").catch((err) => {
+      console.error("[SERVER] Failed to asynchronously send task creation email:", err);
+    });
+    
     // Auto trigger global emergencyMode if title is MEDICAL EMERGENCY
     if (title === "MEDICAL EMERGENCY" || String(title).toUpperCase().includes("EMERGENCY")) {
       emergencyMode = true;
@@ -584,6 +595,8 @@ async function startServer() {
       return res.status(404).json({ success: false, error: "Task not found." });
     }
     
+    const isBecomingCompleted = status === "completed" && task.status !== "completed";
+    
     if (status !== undefined) task.status = status;
     if (actionedAt !== undefined) task.actionedAt = actionedAt;
     if (completedAt !== undefined) task.completedAt = completedAt;
@@ -592,6 +605,12 @@ async function startServer() {
     if (informedDept !== undefined) task.informedDept = informedDept;
     if (resolutionNote !== undefined) task.resolutionNote = resolutionNote;
     
+    // Auto-send task update/completion notification email to hello@brandhue.studio
+    const actionType = isBecomingCompleted ? "Completed" : "Updated";
+    sendTaskNotificationEmail(task, actionType).catch((err) => {
+      console.error("[SERVER] Failed to asynchronously send task update email:", err);
+    });
+
     saveToChatsDb();
     console.log("[SERVER] Task updated successfully:", task);
     return res.json({ success: true, task });
@@ -1261,6 +1280,12 @@ Please generate the next response as the "Recos Chat Assistant" (the Guest Assis
           details: { note: taskDetails, autoCreated: true }
         };
         tasks.push(autoTask);
+        
+        // Auto-send AI auto-created task alert to hello@brandhue.studio
+        sendTaskNotificationEmail(autoTask, "Created").catch((err) => {
+          console.error("[SERVER] Failed to asynchronously send auto-created task email:", err);
+        });
+
         saveToChatsDb();
         console.log(`[AUTO-TASK CREATED] Active service task auto-created concurrently:`, autoTask);
       }
@@ -1282,6 +1307,12 @@ Please generate the next response as the "Recos Chat Assistant" (the Guest Assis
           details: { note: taskDetails, autoCreated: true }
         };
         tasks.push(autoTask);
+
+        // Auto-send AI auto-created task alert to hello@brandhue.studio
+        sendTaskNotificationEmail(autoTask, "Created").catch((err) => {
+          console.error("[SERVER] Failed to asynchronously send auto-created task email:", err);
+        });
+
         saveToChatsDb();
       }
 
@@ -1473,8 +1504,239 @@ Please generate the next response as the "Recos Chat Assistant" (the Guest Assis
   });
 
   // STAFF REGISTRY CRUD API
-  app.post("/api/admin/staff", (req, res) => {
-    const { name, whatsApp, role, username, password } = req.body;
+  async function sendTaskNotificationEmail(task: any, actionType: "Created" | "Updated" | "Completed") {
+    if (!process.env.RESEND_API) {
+      console.log("[SERVER] Resend API key is not configured. Task email notification skipped.");
+      return;
+    }
+    const subject = `[Task ${actionType}] Room ${task.room}: ${task.title}`;
+    const emailHtml = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #0d0d0d; color: #f3f4f6; border-radius: 12px; border: 1px solid #1e293b;">
+        <div style="text-align: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid #1e293b;">
+          <h2 style="color: #cca472; font-size: 20px; margin: 0;">Task Alert: ${actionType}</h2>
+          <p style="color: #94a3b8; font-size: 11px; margin: 4px 0 0; text-transform: uppercase; letter-spacing: 1px;">Recos Concierge System</p>
+        </div>
+        <div style="padding: 10px 0;">
+          <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+            <tr>
+              <td style="color: #94a3b8; padding: 6px 0; width: 120px;">Task ID:</td>
+              <td style="color: #ffffff; padding: 6px 0; font-family: monospace;">${task.id}</td>
+            </tr>
+            <tr>
+              <td style="color: #94a3b8; padding: 6px 0;">Room:</td>
+              <td style="color: #ffffff; padding: 6px 0; font-weight: bold;">${task.room}</td>
+            </tr>
+            <tr>
+              <td style="color: #94a3b8; padding: 6px 0;">Title:</td>
+              <td style="color: #ffffff; padding: 6px 0;">${task.title}</td>
+            </tr>
+            <tr>
+              <td style="color: #94a3b8; padding: 6px 0;">Department:</td>
+              <td style="color: #cca472; padding: 6px 0; font-weight: bold;">${task.informedDept}</td>
+            </tr>
+            <tr>
+              <td style="color: #94a3b8; padding: 6px 0;">Status:</td>
+              <td style="color: #ffffff; padding: 6px 0; text-transform: uppercase;">${task.status}</td>
+            </tr>
+            ${task.details ? `
+            <tr>
+              <td style="color: #94a3b8; padding: 6px 0; vertical-align: top;">Details / Note:</td>
+              <td style="color: #cbd5e1; padding: 6px 0; line-height: 1.4;">${typeof task.details === 'object' ? (task.details.note || JSON.stringify(task.details)) : task.details}</td>
+            </tr>
+            ` : ''}
+            ${task.resolutionNote ? `
+            <tr>
+              <td style="color: #10b981; padding: 6px 0; vertical-align: top; font-weight: bold;">Resolution:</td>
+              <td style="color: #10b981; padding: 6px 0; line-height: 1.4; font-weight: bold;">${task.resolutionNote}</td>
+            </tr>
+            ` : ''}
+            ${task.claimedBy ? `
+            <tr>
+              <td style="color: #94a3b8; padding: 6px 0;">Claimed By:</td>
+              <td style="color: #ffffff; padding: 6px 0;">${task.claimedBy}</td>
+            </tr>
+            ` : ''}
+            ${task.completedBy ? `
+            <tr>
+              <td style="color: #94a3b8; padding: 6px 0;">Completed By:</td>
+              <td style="color: #ffffff; padding: 6px 0;">${task.completedBy}</td>
+            </tr>
+            ` : ''}
+          </table>
+        </div>
+        <div style="margin-top: 20px; font-size: 11px; color: #64748b; border-top: 1px solid #1e293b; padding-top: 12px; text-align: center;">
+          Recos Automatic Task Router &bull; hello@brandhue.studio
+        </div>
+      </div>
+    `;
+
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${process.env.RESEND_API}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          from: "Recos Alerts <alerts@brandhue.studio>",
+          to: ["hello@brandhue.studio"],
+          subject,
+          html: emailHtml
+        })
+      });
+      const resText = await res.text();
+      console.log(`[Task Notify Link] Resend API response code: ${res.status} for hello@brandhue.studio`, resText);
+    } catch (e: any) {
+      console.error("[SERVER] Failed to auto-send email task alert:", e.message || e);
+    }
+  }
+
+  async function sendOnboardingEmail({
+    name,
+    username,
+    email,
+    role,
+    resetToken,
+    origin
+  }: {
+    name: string;
+    username: string;
+    email: string;
+    role: string;
+    resetToken: string;
+    origin: string;
+  }) {
+    if (!process.env.RESEND_API) {
+      return { success: false, error: "Resend API key is not configured on the server." };
+    }
+
+    const resetLink = `${process.env.APP_URL || origin || "https://recos.co.za"}/?action=reset-password&user=${encodeURIComponent(username)}&token=${resetToken}`;
+    const humanRole = role === "staff" ? "Staff Desk (Basic)" : role === "manager" ? "Manager Role" : role === "admin" ? "Office Admin" : role === "recos" ? "Recommendations" : role;
+
+    const getEmailHtml = (isSandboxFallback: boolean) => `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #0d0d0d; color: #f3f4f6; border-radius: 12px; border: 1px solid #1e293b;">
+        ${isSandboxFallback ? `
+        <div style="background-color: #f59e0b15; border: 1px solid #f59e0b40; border-radius: 8px; padding: 14px; margin-bottom: 20px; font-size: 12px; color: #f59e0b; line-height: 1.5; font-family: monospace;">
+          <strong style="color: #f59e0b;">⚠️ RESEND SANDBOX AUTO-ROUTE FALLBACK</strong><br/>
+          This email was automatically routed here because <strong>${email}</strong> is not verified in your Resend account. This allows you to safely preview and test the complete activation flow!
+        </div>
+        ` : ''}
+        <div style="text-align: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #1e293b;">
+          <h1 style="color: #cca472; font-size: 24px; margin: 0; font-family: 'Playfair Display', Georgia, serif; letter-spacing: 1px;">RECOS PORTAL</h1>
+          <p style="color: #94a3b8; font-size: 11px; text-transform: uppercase; margin: 4px 0 0; letter-spacing: 2px;">Concierge & Staff Network</p>
+        </div>
+        
+        <div style="padding: 10px 16px;">
+          <h2 style="color: #ffffff; font-size: 18px; font-weight: 500; margin-top: 0;">Welcome, ${name}!</h2>
+          <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6;">
+            An operator account has been enrolled for you in the Recos Directory by the property administrator.
+          </p>
+          
+          <div style="background-color: #111827; border: 1px solid #1e293b; border-radius: 8px; padding: 16px; margin: 24px 0;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+              <tr>
+                <td style="color: #94a3b8; padding: 6px 0; font-family: monospace; width: 120px;">Username:</td>
+                <td style="color: #ffffff; padding: 6px 0; font-weight: bold; font-family: monospace;">${username}</td>
+              </tr>
+              <tr>
+                <td style="color: #94a3b8; padding: 6px 0; font-family: monospace;">System Role:</td>
+                <td style="color: #cca472; padding: 6px 0; font-weight: bold;">${humanRole}</td>
+              </tr>
+              <tr>
+                <td style="color: #94a3b8; padding: 6px 0; font-family: monospace;">Intended Email:</td>
+                <td style="color: #ffffff; padding: 6px 0; font-family: monospace;">${email}</td>
+              </tr>
+            </table>
+          </div>
+          
+          <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6;">
+            Please click the link below to verify your email address and choose a secure password to activate your credentials on the portal:
+          </p>
+          
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${resetLink}" style="background-color: #cca472; color: #0d0d0d; text-decoration: none; font-weight: bold; font-family: monospace; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; padding: 14px 28px; border-radius: 8px; display: inline-block;">
+              Set Secure Password
+            </a>
+          </div>
+          
+          <p style="color: #94a3b8; font-size: 11px; line-height: 1.5; margin-top: 32px;">
+            If you did not expect this enrollment, please ignore it. If the above button does not work, copy and paste this URL into your browser:
+            <br/>
+            <a href="${resetLink}" style="color: #cca472; text-decoration: underline; word-break: break-all;">${resetLink}</a>
+          </p>
+        </div>
+        
+        <div style="text-align: center; margin-top: 40px; padding-top: 16px; border-top: 1px solid #1e293b; color: #64748b; font-size: 11px;">
+          <p style="margin: 0 0 6px;">Recos White-Label Assistant Ecosystem</p>
+          <p style="margin: 0;">BligGroup (Pty) Ltd., 1 Newport St, Cape Town / info@recos.co.za</p>
+        </div>
+      </div>
+    `;
+
+    const triggerCall = async (recipient: string, isFallback: boolean) => {
+      return fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${process.env.RESEND_API}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          from: "Recos Onboarding <onboarding@resend.dev>",
+          to: [recipient],
+          subject: isFallback 
+            ? `[Sandbox] Activate Recos Staff Account: ${name}`
+            : `Activate Recos Staff Account: ${name}`,
+          html: getEmailHtml(isFallback)
+        })
+      });
+    };
+
+    try {
+      const res = await triggerCall(email, false);
+      const bodyText = await res.text();
+      
+      if (res.status === 403 || res.status === 401 || res.status === 400 || bodyText.includes("validation_error") || bodyText.includes("testing emails")) {
+        console.log(`[SERVER] Resend restricted sending to unverified recipient (${email}). Executing sandbox auto-route fallback to owner: info@recos.co.za`);
+        
+        if (email.toLowerCase() === "info@recos.co.za") {
+          return { success: true, sandboxApplied: true, recipient: "info@recos.co.za", resendResponse: bodyText };
+        }
+
+        const fbRes = await triggerCall("info@recos.co.za", true);
+        const fbBody = await fbRes.text();
+        console.log("[SERVER] Resend Sandbox auto-route status:", fbRes.status, fbBody);
+        return { success: true, sandboxApplied: true, recipient: "info@recos.co.za", resendResponse: fbBody };
+      }
+
+      if (!res.ok) {
+        console.warn(`[SERVER] Resend returned non-ok status: ${res.status}`, bodyText);
+        if (email.toLowerCase() !== "info@recos.co.za") {
+          const fbRes = await triggerCall("info@recos.co.za", true);
+          const fbBody = await fbRes.text();
+          return { success: true, sandboxApplied: true, recipient: "info@recos.co.za", resendResponse: fbBody };
+        }
+        return { success: false, error: bodyText };
+      }
+
+      console.log(`[SERVER] Onboarding email successfully delivered directly to: ${email}`);
+      return { success: true, sandboxApplied: false, recipient: email, resendResponse: bodyText };
+    } catch (error: any) {
+      console.warn("[SERVER] Gracefully caught Resend exception, trying sandbox fallback to info@recos.co.za:", error.message || error);
+      try {
+        if (email.toLowerCase() !== "info@recos.co.za") {
+          const fbRes = await triggerCall("info@recos.co.za", true);
+          const fbBody = await fbRes.text();
+          return { success: true, sandboxApplied: true, recipient: "info@recos.co.za", resendResponse: fbBody };
+        }
+      } catch (fbErr: any) {
+        console.error("[SERVER] Sandbox fallback failed too:", fbErr.message || fbErr);
+      }
+      return { success: false, error: error.message || String(error) };
+    }
+  }
+
+  app.post("/api/admin/staff", async (req, res) => {
+    const { name, whatsApp, email, role, username, password } = req.body;
     if (!name || !role || !username || !password) {
       return res.status(400).json({ success: false, error: "Missing required fields." });
     }
@@ -1482,24 +1744,45 @@ Please generate the next response as the "Recos Chat Assistant" (the Guest Assis
     if (exists) {
       return res.status(400).json({ success: false, error: "Username already exists." });
     }
-    const newStaff = { name, whatsApp: whatsApp || "", role, username, password };
+
+    const resetToken = Math.random().toString(36).substring(2, 10).toUpperCase();
+    const newStaff: any = { name, whatsApp: whatsApp || "", email: email || "", role, username, password };
+    
+    if (email) {
+      newStaff.resetToken = resetToken;
+    }
+
     staffLogons.push(newStaff);
     saveToChatsDb();
     console.log("[SERVER] Staff user registered:", newStaff);
-    return res.json({ success: true, staffLogons });
+
+    let emailResult = null;
+    if (email && process.env.RESEND_API) {
+      emailResult = await sendOnboardingEmail({
+        name,
+        username,
+        email,
+        role,
+        resetToken,
+        origin: req.get("origin") || ""
+      });
+    }
+
+    return res.json({ success: true, staffLogons, emailResult });
   });
 
   app.put("/api/admin/staff/:username", (req, res) => {
     const { username } = req.params;
-    const { name, whatsApp, role, password } = req.body;
+    const { name, whatsApp, email, role, password } = req.body;
     
-    const staff = staffLogons.find(s => s && typeof s.username === "string" && typeof username === "string" && s.username.toLowerCase() === username.toLowerCase());
+    const staff: any = staffLogons.find(s => s && typeof s.username === "string" && typeof username === "string" && s.username.toLowerCase() === username.toLowerCase());
     if (!staff) {
       return res.status(404).json({ success: false, error: "Staff user not found." });
     }
     
     if (name !== undefined) staff.name = name;
     if (whatsApp !== undefined) staff.whatsApp = whatsApp;
+    if (email !== undefined) staff.email = email;
     if (role !== undefined) staff.role = role;
     if (password !== undefined) staff.password = password;
     
@@ -1514,6 +1797,80 @@ Please generate the next response as the "Recos Chat Assistant" (the Guest Assis
     saveToChatsDb();
     console.log("[SERVER] Staff user deleted successfully:", username);
     return res.json({ success: true, staffLogons });
+  });
+
+  // POST /api/admin/staff/:username/resend-activation
+  app.post("/api/admin/staff/:username/resend-activation", async (req, res) => {
+    const { username } = req.params;
+    const staff: any = staffLogons.find(s => s && typeof s.username === "string" && typeof username === "string" && s.username.toLowerCase() === username.toLowerCase());
+    if (!staff) {
+      return res.status(404).json({ success: false, error: "Staff user not found." });
+    }
+    if (!staff.email) {
+      return res.status(400).json({ success: false, error: "This operator has no email address configured." });
+    }
+
+    const resetToken = Math.random().toString(36).substring(2, 10).toUpperCase();
+    staff.resetToken = resetToken;
+    saveToChatsDb();
+
+    console.log("[SERVER] Resending activation email for staff user:", staff.username);
+
+    if (process.env.RESEND_API) {
+      const emailResult = await sendOnboardingEmail({
+        name: staff.name,
+        username: staff.username,
+        email: staff.email,
+        role: staff.role,
+        resetToken,
+        origin: req.get("origin") || ""
+      });
+
+      return res.json({
+        success: emailResult.success,
+        message: emailResult.success 
+          ? (emailResult.sandboxApplied 
+             ? `Activation email successfully routed to verified sandbox account (info@recos.co.za) due to Resend restriction.` 
+             : "Activation email successfully delivered!")
+          : (emailResult.error || "Failed to deliver activation email."),
+        emailResult
+      });
+    } else {
+      return res.json({ success: false, error: "Resend API key is not configured on the server." });
+    }
+  });
+
+  // GET /api/verify-reset-token
+  app.get("/api/verify-reset-token", (req, res) => {
+    const { username, token } = req.query;
+    if (!username || !token) {
+      return res.status(400).json({ success: false, error: "Missing parameters." });
+    }
+    const staff: any = staffLogons.find(s => s && typeof s.username === "string" && s.username.toLowerCase() === String(username).toLowerCase());
+    if (!staff || !staff.resetToken || staff.resetToken !== token) {
+      return res.json({ success: false, error: "Invalid or expired reset token link." });
+    }
+    return res.json({ success: true, name: staff.name });
+  });
+
+  // POST /api/reset-password
+  app.post("/api/reset-password", (req, res) => {
+    const { username, token, password } = req.body;
+    if (!username || !token || !password) {
+      return res.status(400).json({ success: false, error: "Missing required fields." });
+    }
+    const staff: any = staffLogons.find(s => s && typeof s.username === "string" && s.username.toLowerCase() === username.toLowerCase());
+    if (!staff) {
+      return res.status(404).json({ success: false, error: "User accounts not found in directory." });
+    }
+    if (!staff.resetToken || staff.resetToken !== token) {
+      return res.status(400).json({ success: false, error: "Invalid or expired reset token link." });
+    }
+    staff.password = password;
+    delete staff.resetToken; // Consume the token
+    saveToChatsDb();
+    console.log(`[SERVER] Password reset successfully for user: ${username}`);
+    return res.json({ success: true, message: "Credential changes applied." });
   });
 
   // POST /api/admin/clear-db - clear all chats and tasks with ADMIN2025 password

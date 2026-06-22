@@ -190,9 +190,11 @@ export default function GuestPortalView() {
         const isNetworkError = err?.name === "TypeError" || 
                                err?.message?.toLowerCase().includes("fetch") || 
                                err?.message?.toLowerCase().includes("network") ||
-                               err?.message?.toLowerCase().includes("failed");
+                               err?.message?.toLowerCase().includes("failed") ||
+                               err?.message?.toLowerCase().includes("429") ||
+                               err?.message?.toLowerCase().includes("status: 429");
         if (isNetworkError) {
-          console.warn("[GUEST PORTAL SYNC WARNING] Transient fetch connectivity warning: retaining local state.");
+          console.warn("[GUEST PORTAL SYNC WARNING] Transient rate-limited or connectivity warning (status: 429 or similar): retaining local state.");
         } else {
           console.error("Failed to sync guest portal collections:", err);
         }
@@ -403,6 +405,7 @@ export default function GuestPortalView() {
   const [chatOpen, setChatOpen] = useState(false);
   const [showDressCodeModal, setShowDressCodeModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
+  const [showSelfDriveModal, setShowSelfDriveModal] = useState(false);
   const [bannerVisible, setBannerVisible] = useState(true);
   const [alertPopupDismissed, setAlertPopupDismissed] = useState(false);
   const [showFathersDayModal, setShowFathersDayModal] = useState(false);
@@ -980,6 +983,12 @@ export default function GuestPortalView() {
               className="w-full bg-transparent hover:bg-white/[0.02] text-[#cca472] border border-[#cca472] font-bold py-4 rounded-xl text-[10px] tracking-[0.2em] uppercase transition-all duration-300 cursor-pointer active:scale-[0.99]"
             >
               BOOK TRANSFER
+            </button>
+            <button
+              onClick={() => setShowSelfDriveModal(true)}
+              className="w-full bg-transparent hover:bg-white/[0.02] text-[#cca472] border border-[#cca472] font-bold py-4 rounded-xl text-[10px] tracking-[0.2em] uppercase transition-all duration-300 cursor-pointer active:scale-[0.99]"
+            >
+              BOOK A SELF-DRIVE
             </button>
           </div>
 
@@ -1920,6 +1929,8 @@ export default function GuestPortalView() {
                       </p>
                     </div>
 
+
+
                     <div className="space-y-1.5 mt-2">
                       <label className="text-[9px] font-bold uppercase tracking-[0.16em] text-slate-400 block font-sans">
                         DROP-OFF DESTINATION
@@ -2107,6 +2118,19 @@ export default function GuestPortalView() {
                       Departures leave from the lobby. Surcharges for extended single-trip limits beyond 10km return are room-billed.
                     </p>
 
+                    {/* SUBJECT TO AVAILABILITY REMINDER */}
+                    <div className="bg-amber-500/5 border border-amber-500/10 rounded-xl p-3 flex items-start gap-2.5 text-left">
+                      <Clock size={14} className="text-[#cca472] shrink-0 mt-0.5" />
+                      <div className="space-y-0.5">
+                        <span className="text-[9px] font-bold text-[#cca472] uppercase tracking-wider font-sans block">
+                          Subject to Availability Reminder
+                        </span>
+                        <p className="text-[9px] text-slate-400 leading-normal font-light">
+                          All luxury transfers and express shuttles are subject to vehicle and driver availability. We recommend booking in advance.
+                        </p>
+                      </div>
+                    </div>
+
                     <div className="pt-2 pb-[10%]">
                       <button
                         type="submit"
@@ -2118,6 +2142,84 @@ export default function GuestPortalView() {
                     </div>
                   </form>
                 )}
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* BOOK A SELF-DRIVE MODAL SHEET */}
+        <AnimatePresence>
+          {showSelfDriveModal && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.7 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowSelfDriveModal(false)}
+                className="absolute inset-0 bg-black z-45"
+              />
+              <motion.div
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 22, stiffness: 200 }}
+                className="absolute inset-x-0 bottom-0 bg-[#181818] border-t border-white/10 z-50 rounded-t-[32px] p-6 text-left shadow-2xl flex flex-col justify-between max-h-[85%] relative"
+              >
+                <button
+                  type="button"
+                  onClick={() => setShowSelfDriveModal(false)}
+                  className="absolute top-6 right-6 text-slate-400 hover:text-white transition-colors p-1.5 rounded-full hover:bg-white/5 cursor-pointer z-50"
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
+                <div className="space-y-5 overflow-y-auto pr-1">
+                  <div className="space-y-1">
+                    {/* Header group */}
+                    <h3 className="text-xl font-serif text-white font-semibold">
+                      Book a Self-drive
+                    </h3>
+                    <p className="text-[10px] text-slate-400 font-light mt-0.5 pr-[50px]">
+                      Explore Johannesburg at your own pace with self-drive options.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3 pt-1">
+                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 space-y-2.5">
+                      <p className="text-xs text-slate-300 leading-relaxed font-light">
+                        Through our alliance with <strong className="font-bold">Hertz South Africa</strong>, guests can seamlessly book standard, luxury, or electric self-drive vehicles.
+                      </p>
+                      <ul className="space-y-1.5 text-[11px] text-slate-400 font-light">
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 size={12} className="text-[#cca472] shrink-0" />
+                          <span>Direct pickup & delivery options at hotel outer arrivals</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 size={12} className="text-[#cca472] shrink-0" />
+                          <span>Fully insured vehicles with 24/7 Hertz roadside assistance</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 size={12} className="text-[#cca472] shrink-0" />
+                          <span>GPS packages and infant seat configurations upon request</span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    {/* This section can only be updated on Recos */}
+                  </div>
+
+                  <div className="pt-4 pb-6">
+                    <a
+                      href="https://www.hertz.co.za/?step=search-results"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full bg-[#cca472] hover:bg-[#ba9361] text-black font-bold py-3.5 rounded-xl text-[10px] tracking-[0.15em] uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center select-none shadow-md"
+                    >
+                      <span>Book Now</span>
+                      <ExternalLink size={12} />
+                    </a>
+                  </div>
+                </div>
               </motion.div>
             </>
           )}

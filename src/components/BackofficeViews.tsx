@@ -479,8 +479,9 @@ export function ConciergeView({
                 </span>
               </div>
               <div className="space-y-2 max-h-[460px] overflow-y-auto pr-1">
-                {tasks
+                {[...tasks]
                   .filter((t) => t.status === "received" && (taskDeptFilter === "All" || t.informedDept === taskDeptFilter))
+                  .sort((a, b) => b.createdAt - a.createdAt)
                   .map((t) => (
                     <div key={t.id} className="bg-slate-950/60 hover:bg-slate-900 border border-slate-800/80 p-3 rounded-lg flex flex-col space-y-2 leading-snug">
                       <div className="flex justify-between items-start">
@@ -1291,8 +1292,9 @@ export function TasksView({
               .length === 0 ? (
                 <div className="text-center py-12 text-xs text-slate-500 font-mono italic">No pending tasks.</div>
               ) : (
-                tasks
+                [...tasks]
                   .filter((t) => t.status === "received" && (taskDeptFilter === "All" || t.informedDept === taskDeptFilter))
+                  .sort((a, b) => b.createdAt - a.createdAt)
                   .map((t) => (
                     <div key={t.id} className="bg-slate-900/80 hover:bg-slate-900/95 border border-slate-800 hover:border-slate-700 p-3.5 rounded-lg flex flex-col space-y-2.5 leading-snug transition-all shadow-sm">
                       <div className="flex justify-between items-start">
@@ -2696,10 +2698,12 @@ export function StaffRegistryView({
 }) {
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState<any | null>(null);
+  const [deleteCandidate, setDeleteCandidate] = useState<any | null>(null);
 
   // Form bindings
   const [sName, setSName] = useState("");
   const [sWhatsapp, setSWhatsapp] = useState("");
+  const [sEmail, setSEmail] = useState("");
   const [sRole, setSRole] = useState("staff");
   const [sUsername, setSUsername] = useState("");
   const [sPassword, setSPassword] = useState("");
@@ -2710,6 +2714,32 @@ export function StaffRegistryView({
   const [clearLoading, setClearLoading] = useState(false);
   const [clearStatus, setClearStatus] = useState<{ success: boolean; message: string } | null>(null);
   const [showConfirmButton, setShowConfirmButton] = useState(false);
+
+  const [resending, setResending] = useState(false);
+  const [resendStatus, setResendStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const [onboardingNotice, setOnboardingNotice] = useState<{ success: boolean; message: string; type?: "sandbox" | "regular" } | null>(null);
+
+  const handleResendActivation = async () => {
+    if (!editItem || !editItem.username) return;
+    setResending(true);
+    setResendStatus(null);
+    try {
+      const res = await fetch(`/api/admin/staff/${encodeURIComponent(editItem.username)}/resend-activation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setResendStatus({ success: true, message: data.message || "Activation email successfully resent!" });
+      } else {
+        setResendStatus({ success: false, message: data.error || "Failed to resend activation." });
+      }
+    } catch (err: any) {
+      setResendStatus({ success: false, message: err.message || "Network request failed." });
+    } finally {
+      setResending(false);
+    }
+  };
 
   const startClearDbFlow = () => {
     if (!clearPassword) {
@@ -2751,11 +2781,13 @@ export function StaffRegistryView({
 
   const handleOpenModal = (item?: any) => {
     setEditItem(item || null);
-    setSName(item ? item.name : "");
-    setSWhatsapp(item ? item.whatsApp : "");
-    setSRole(item ? item.role : "staff");
-    setSUsername(item ? item.username : "");
-    setSPassword(item ? item.password : "");
+    setSName(item ? item.name || "" : "");
+    setSWhatsapp(item ? item.whatsApp || "" : "");
+    setSEmail(item ? item.email || "" : "");
+    setSRole(item ? item.role || "staff" : "staff");
+    setSUsername(item ? item.username || "" : "");
+    setSPassword(item ? item.password || "" : "");
+    setResendStatus(null);
     setShowModal(true);
   };
 
@@ -2767,7 +2799,9 @@ export function StaffRegistryView({
     e.preventDefault();
     const endpoint = `/api/admin/staff${editItem ? `/${editItem.username}` : ""}`;
     const method = editItem ? "PUT" : "POST";
-    const payload = { name: sName, whatsApp: sWhatsapp, role: sRole, username: sUsername, password: sPassword };
+    const payload = { name: sName, whatsApp: sWhatsapp, email: sEmail, role: sRole, username: sUsername, password: sPassword };
+
+    setOnboardingNotice(null);
 
     try {
       const res = await fetch(endpoint, {
@@ -2779,6 +2813,30 @@ export function StaffRegistryView({
       if (res.ok && data.success) {
         setShowModal(false);
         onRefresh();
+
+        if (method === "POST" && data.emailResult) {
+          const er = data.emailResult;
+          if (er.success) {
+            if (er.sandboxApplied) {
+              setOnboardingNotice({
+                success: true,
+                type: "sandbox",
+                message: `Operator enrolled. Because Resend is in Developer Sandbox mode, the onboarding invitation was automatically routed to your verified account owner address (${er.recipient}) instead of ${payload.email}.`
+              });
+            } else {
+              setOnboardingNotice({
+                success: true,
+                type: "regular",
+                message: `An activation invitation has been successfully delivered to ${payload.email}.`
+              });
+            }
+          } else {
+            setOnboardingNotice({
+              success: false,
+              message: `The operator was enrolled, but activation onboarding mail delivery failed: ${er.error || "Unknown delivery issue"}`
+            });
+          }
+        }
       } else {
         alert(data.error || "Staff authentication logic failure.");
       }
@@ -2787,15 +2845,17 @@ export function StaffRegistryView({
     }
   };
 
-  const handleDelete = async (username: string) => {
-    if (!window.confirm("Absolute remove this operator from system directory?")) return;
+  const confirmDelete = async () => {
+    if (!deleteCandidate) return;
     try {
-      const res = await fetch(`/api/admin/staff/${username}`, { method: "DELETE" });
+      const res = await fetch(`/api/admin/staff/${deleteCandidate.username}`, { method: "DELETE" });
       if (res.ok) {
         onRefresh();
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      setDeleteCandidate(null);
     }
   };
 
@@ -2814,6 +2874,33 @@ export function StaffRegistryView({
         </button>
       </div>
 
+      {onboardingNotice && (
+        <div className={`p-3 rounded-lg border text-xs font-mono leading-relaxed flex items-start justify-between gap-3 ${
+          onboardingNotice.success 
+            ? onboardingNotice.type === "sandbox"
+              ? "bg-amber-950/20 border-amber-900/40 text-amber-300"
+              : "bg-emerald-950/20 border-emerald-900/40 text-emerald-400"
+            : "bg-rose-950/20 border-rose-900/40 text-rose-400"
+        }`}>
+          <div>
+            <strong className="block uppercase tracking-wider text-[10px] mb-1">
+              {onboardingNotice.success 
+                ? onboardingNotice.type === "sandbox" 
+                  ? "📧 Resend Test Mode Sandbox Notice" 
+                  : "📧 Onboarding Invitation Dispatched" 
+                : "⚠️ Delivery Failed"}
+            </strong>
+            {onboardingNotice.message}
+          </div>
+          <button 
+            onClick={() => setOnboardingNotice(null)} 
+            className="text-slate-400 hover:text-slate-200 transition-colors uppercase font-bold text-[9px] cursor-pointer bg-slate-800/40 hover:bg-slate-800/80 px-2 py-1 rounded"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       <div className="overflow-x-auto bg-black/25 border border-slate-800 rounded-xl">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
@@ -2831,11 +2918,14 @@ export function StaffRegistryView({
               const rowKey = s.username ? `staff-${s.username}-${idx}` : `staff-fallback-${idx}`;
               return (
                 <tr key={rowKey} className="hover:bg-slate-800/10 transition-colors">
-                  <td className="py-3 px-4 font-bold text-slate-100">{s.name || s.username}</td>
+                  <td className="py-3 px-4 font-bold text-slate-100">
+                    <div>{s.name || s.username}</div>
+                    {s.email && <div className="text-[10px] text-slate-400 font-mono font-normal lowercase">{s.email}</div>}
+                  </td>
                   <td className="py-3 px-4 font-mono text-[11px]">{s.whatsApp || "(no contact)"}</td>
                   <td className="py-3 px-4 text-center">
                     <span className="bg-slate-800/70 border border-slate-700/60 dark-pill text-[10px] px-2 py-0.5 rounded-full font-mono text-amber-400">
-                      {s.role}
+                      {s.role === "staff" ? "Staff Desk (Basic)" : s.role === "manager" ? "Manager Role" : s.role === "admin" ? "Office Admin" : s.role === "recos" ? "Recommendations" : s.role}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-center font-mono opacity-80">{s.username}</td>
@@ -2857,7 +2947,7 @@ export function StaffRegistryView({
                       <button onClick={() => handleOpenModal(s)} className="p-1 text-slate-400 hover:text-amber-400 border border-slate-800 rounded transition-all cursor-pointer">
                         <Edit2 size={12} />
                       </button>
-                      <button onClick={() => handleDelete(s.username)} className="p-1 text-slate-400 hover:text-red-400 border border-slate-800 rounded transition-all cursor-pointer">
+                      <button onClick={() => setDeleteCandidate(s)} className="p-1 text-slate-400 hover:text-red-400 border border-slate-800 rounded transition-all cursor-pointer" title="Delete staff operator">
                         <Trash2 size={12} />
                       </button>
                     </div>
@@ -2868,6 +2958,47 @@ export function StaffRegistryView({
           </tbody>
         </table>
       </div>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {deleteCandidate && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-[#0F172A] border border-rose-900/50 w-full max-w-sm rounded-2xl p-6 relative shadow-2xl text-left">
+            <button onClick={() => setDeleteCandidate(null)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 cursor-pointer">
+              <X size={18} />
+            </button>
+
+            <h4 className="text-base font-serif font-bold text-rose-450 pb-2 border-b border-slate-800 uppercase tracking-wider flex items-center gap-2">
+              ⚠️ Confirm Operator Removal
+            </h4>
+
+            <div className="space-y-3 pt-4 text-xs font-sans text-slate-300">
+              <p>
+                Are you absolutely sure you want to remove <strong className="text-white">{deleteCandidate.name || deleteCandidate.username}</strong> (<span className="font-mono text-amber-405">{deleteCandidate.username}</span>) from the system directory?
+              </p>
+              <p className="text-[11px] text-slate-400 leading-relaxed font-sans">
+                This action is irreversible and will immediately revoke all access credentials and backoffice capabilities for this user account.
+              </p>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-6 border-t border-slate-800/60 mt-4">
+              <button
+                type="button"
+                onClick={() => setDeleteCandidate(null)}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-mono text-[10px] uppercase font-bold px-4 py-2 rounded-lg transition-all border border-slate-700/60 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                className="bg-rose-900/80 hover:bg-rose-800 text-rose-100 font-mono text-[10px] uppercase tracking-wider font-bold px-4 py-2 rounded-lg transition-all border border-rose-800/40 cursor-pointer hover:border-rose-600 shadow-lg shadow-rose-950/40"
+              >
+                Yes, delete operator
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL FORM */}
       {showModal && (
@@ -2890,14 +3021,18 @@ export function StaffRegistryView({
                 <label className="font-mono text-slate-400">WhatsApp Cell (+27...)</label>
                 <input type="text" value={sWhatsapp} placeholder="+2782..." onChange={(e) => setSWhatsapp(e.target.value)} className="bg-slate-900 border border-slate-800 rounded p-2 text-slate-300 focus:border-amber-400 font-mono text-[11px]" />
               </div>
+              <div className="flex flex-col space-y-1">
+                <label className="font-mono text-slate-400">Email Address (for password reset)</label>
+                <input type="email" placeholder="operator@example.com" value={sEmail} onChange={(e) => setSEmail(e.target.value)} className="bg-slate-900 border border-slate-800 rounded p-2 text-slate-300 focus:border-amber-400 font-mono text-[11px]" />
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col space-y-1">
                   <label className="font-mono text-slate-400">System Role</label>
                   <select value={sRole} onChange={(e) => setSRole(e.target.value)} className="bg-slate-900 border border-slate-800 rounded p-2 text-slate-300 focus:border-amber-400 text-xs">
-                    <option value="staff">Staff Desk</option>
-                    <option value="manager">duty Manager</option>
-                    <option value="admin">Super Admin</option>
-                    <option value="recos">recommendations</option>
+                    <option value="staff">Staff Desk (Basic)</option>
+                    <option value="manager">Manager Role</option>
+                    <option value="admin">Office Admin</option>
+                    <option value="recos">Recommendations</option>
                   </select>
                 </div>
                 <div className="flex flex-col space-y-1">
@@ -2909,6 +3044,40 @@ export function StaffRegistryView({
                 <label className="font-mono text-slate-400">Account passkey password</label>
                 <input type="password" required value={sPassword} onChange={(e) => setSPassword(e.target.value)} className="bg-slate-900 border border-slate-800 rounded p-2 text-slate-300 focus:border-amber-400 font-mono" />
               </div>
+
+              {editItem && (
+                <div className="pt-3 pb-1 border-t border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-mono text-slate-400">Credential Onboarding</span>
+                    {sEmail ? (
+                      <button
+                        type="button"
+                        disabled={resending}
+                        onClick={handleResendActivation}
+                        className="bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/20 text-[#cca472] px-3 py-1.5 rounded-lg flex items-center space-x-1 cursor-pointer font-mono text-[10px] transition-all disabled:opacity-50"
+                      >
+                        {resending ? (
+                          <RefreshCw size={10} className="animate-spin text-[#cca472]" />
+                        ) : (
+                          <Send size={10} />
+                        )}
+                        <span>{resending ? "RESENDING..." : "RESEND ACTIVATION EMAIL"}</span>
+                      </button>
+                    ) : (
+                      <span className="text-[10px] text-rose-400 font-mono">Requires Email Address</span>
+                    )}
+                  </div>
+                  {resendStatus && (
+                    <div className={`p-2 rounded font-mono text-[10px] border leading-normal ${
+                      resendStatus.success
+                        ? "bg-emerald-950/20 border-emerald-900/40 text-emerald-400"
+                        : "bg-rose-950/20 border-rose-900/40 text-rose-400"
+                    }`}>
+                      {resendStatus.message}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <button
                 type="submit"
