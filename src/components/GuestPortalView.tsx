@@ -68,77 +68,10 @@ export default function GuestPortalView() {
     alertBannerText: ""
   });
 
-  const [promotions, setPromotions] = useState<any[]>([
-    {
-      id: "p1",
-      title: "Clubhouse Fixture World Cup",
-      paragraph: "Join us at the Clubhouse as we bring the atmosphere, the flavour and the big game energy to every South African fixture during the FIFA World Cup 🇿🇦🔥",
-      image_url: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&q=80",
-      cta_text: "Make a Booking"
-    },
-    {
-      id: "p2",
-      title: "Father's Day Spit Braai",
-      paragraph: "Celebrate Father’s Day with us with an afternoon spit braai experience. Complete with live music and garden playground access for children.",
-      image_url: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80",
-      cta_text: "Make a Booking"
-    }
-  ]);
-
-  const [facilities, setFacilities] = useState<any[]>([
-    {
-      id: "fac1",
-      title: "The Sky Pool",
-      description: "Heated infinity pool with panoramic Johannesburg city views, open daily.",
-      image_url: "https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?auto=format&fit=crop&q=80",
-      category: "Swimming"
-    },
-    {
-      id: "fac2",
-      title: "Gym & Fitness Gym",
-      description: "State-of-the-art weights, cardio, and personalized training gear open 24/7.",
-      image_url: "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?auto=format&fit=crop&q=80",
-      category: "Fitness"
-    },
-    {
-      id: "fac3",
-      title: "Aura Wellness Spa",
-      description: "Treat yourself to signature massages and luxury organic skin therapies.",
-      image_url: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80",
-      category: "Wellness"
-    }
-  ]);
-
-  const [restaurants, setRestaurants] = useState<any[]>([
-    {
-      id: "rest1",
-      title: "Clubhouse Restaurant & Bar",
-      description: "Fine dining overlooking the golf course, with high ceilings and cozy dining lounges.",
-      image_url: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80",
-      cta_enabled: true,
-      cta_text: "Make a Booking",
-      cta_url: "https://www.dineplan.com/restaurants/sandton-hotel-restaurant"
-    }
-  ]);
-
-  const [recos, setRecos] = useState<any[]>([
-    {
-      id: "reco1",
-      title: "Nelson Mandela Square",
-      paragraph: "Paying homage to one of the world's greatest leaders, with elegant fine dining and fashion boutiques.",
-      image_url: "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&q=80",
-      cta_text: "More Info",
-      cta_url: "https://www.google.com/maps/search/Nelson+Mandela+Square"
-    },
-    {
-      id: "reco2",
-      title: "Apartheid Museum",
-      paragraph: "A profoundly moving journey through 20th century South Africa. Perfect for history explorers.",
-      image_url: "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&q=80",
-      cta_text: "More Info",
-      cta_url: "https://www.apartheidmuseum.org/"
-    }
-  ]);
+  const [promotions, setPromotions] = useState<any[]>([]);
+  const [facilities, setFacilities] = useState<any[]>([]);
+  const [restaurants, setRestaurants] = useState<any[]>([]);
+  const [recos, setRecos] = useState<any[]>([]);
 
   const firedImpressionsRef = useRef<Set<string>>(new Set());
 
@@ -905,6 +838,13 @@ export default function GuestPortalView() {
         {/* Scrollable Container Body */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-7 scrollbar-none select-text pb-16 relative">
           
+          {loading && promotions.length === 0 && (
+            <div className="absolute inset-0 bg-[#161616] z-50 flex flex-col items-center justify-center space-y-4">
+              <div className="w-8 h-8 border-2 border-[#cca472] border-t-transparent rounded-full animate-spin" />
+              <p className="text-[10px] font-mono text-slate-400 tracking-widest uppercase animate-pulse">Loading Guest Portal...</p>
+            </div>
+          )}
+          
           {/* Room details header line */}
           <div className="flex justify-between items-center text-[10px] sm:text-xs tracking-[0.2em] font-semibold text-slate-400 font-sans border-b border-[#cca472]/30 pb-2.5 mt-1">
             <span className="text-white">SUITE {guestSession?.roomNumber || "123"}</span>
@@ -928,20 +868,15 @@ export default function GuestPortalView() {
           )}
 
           {/* Welcome Notification Banner */}
-          {masterConfig.alertBannerActive && bannerVisible && (
+          {masterConfig.alertBannerActive && bannerVisible && masterConfig.alertBannerText && (
             <div 
-              onClick={() => {
-                if (!masterConfig.alertBannerText || masterConfig.alertBannerText.toLowerCase().includes("father")) {
-                  setShowFathersDayModal(true);
-                }
-              }}
               className="flex justify-between items-center bg-white/[0.04] border border-[#cca472]/30 rounded-xl p-3 text-[11px] text-slate-350 relative gap-3 backdrop-blur-md select-none transition-all cursor-pointer hover:bg-white/[0.08] active:scale-[0.99] group"
               title="Alert Notification"
             >
               <div className="flex items-center gap-2 text-left">
                 <span className="text-yellow-500 text-xs animate-bounce">📢</span>
                 <span className="font-medium leading-relaxed group-hover:text-white transition-colors pr-1">
-                  {masterConfig.alertBannerText || "Happy Father's Day Dads! Check out our Father's Day Spa package details."}
+                  {masterConfig.alertBannerText}
                 </span>
               </div>
               <button 
@@ -1007,196 +942,206 @@ export default function GuestPortalView() {
           </div>
 
           {/* Exclusive Promotions Horizontal Slider (4:5 Ratio, No Text, Click opens bottom sheet) */}
-          <div className="space-y-3.5">
-            <div className="flex justify-between items-center text-xs">
-              <h3 className="font-serif italic font-semibold text-lg text-white">
-                Exclusive Promotions
-              </h3>
-              <span className="text-[10px] font-mono tracking-widest text-[#D4B27C] uppercase">
-                {promotions.length} Offers
-              </span>
-            </div>
+          {promotions && promotions.length > 0 && (
+            <div className="space-y-3.5">
+              <div className="flex justify-between items-center text-xs">
+                <h3 className="font-serif italic font-semibold text-lg text-white">
+                  Exclusive Promotions
+                </h3>
+                <span className="text-[10px] font-mono tracking-widest text-[#D4B27C] uppercase">
+                  {promotions.length} Offers
+                </span>
+              </div>
 
-            <div className="relative">
-              <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-none snap-x snap-mandatory">
-                {promotions.map((promo, idx) => (
+              <div className="relative">
+                <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-none snap-x snap-mandatory">
+                  {promotions.map((promo, idx) => (
+                    <div
+                      key={promo.id || idx}
+                      onClick={() => setSelectedPromo(promo)}
+                      className="snap-start flex-shrink-0 w-[240px] aspect-[4/5] rounded-2xl overflow-hidden border border-white/10 bg-black/40 relative cursor-pointer shadow-lg group transition-all duration-300 hover:scale-[1.01] hover:border-[#D4B27C]/40"
+                    >
+                      <img
+                        src={promo.image_url}
+                        alt={promo.title}
+                        className="w-full h-full object-cover opacity-85 group-hover:opacity-100 transition-all duration-500 group-hover:scale-[1.05]"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20 pointer-events-none" />
+                    </div>
+                  ))}
+                </div>
+                <div className="text-[9px] font-mono tracking-widest text-[#D4B27C]/60 text-right mt-1.5 select-none uppercase">
+                  ← Swipe to explore offers →
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Hotel Facilities Horizontal Slider */}
+          {facilities && facilities.length > 0 && (
+            <div className="space-y-3.5 bg-transparent">
+              <div className="flex justify-between items-center text-xs">
+                <h3 className="font-serif italic font-semibold text-lg text-white">
+                  Hotel Facilities
+                </h3>
+              </div>
+
+              <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
+                {facilities.map((fac) => (
                   <div
-                    key={promo.id || idx}
-                    onClick={() => setSelectedPromo(promo)}
-                    className="snap-start flex-shrink-0 w-[240px] aspect-[4/5] rounded-2xl overflow-hidden border border-white/10 bg-black/40 relative cursor-pointer shadow-lg group transition-all duration-300 hover:scale-[1.01] hover:border-[#D4B27C]/40"
+                    key={fac.id}
+                    onClick={() => setSelectedFacility(fac)}
+                    className="flex-shrink-0 w-64 snap-start bg-white/[0.015] border border-white/5 rounded-2xl overflow-hidden shadow-md cursor-pointer hover:border-[#D4B27C]/30 transition-all duration-300 hover:scale-[1.01] group"
                   >
-                    <img
-                      src={promo.image_url}
-                      alt={promo.title}
-                      className="w-full h-full object-cover opacity-85 group-hover:opacity-100 transition-all duration-500 group-hover:scale-[1.05]"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20 pointer-events-none" />
+                    <div className="h-28 relative overflow-hidden">
+                      <img
+                        src={fac.image_url}
+                        alt={fac.title}
+                        className="w-full h-full object-cover opacity-70 group-hover:opacity-90 group-hover:scale-[1.03] transition-all duration-500"
+                        referrerPolicy="no-referrer"
+                      />
+                      <span className="absolute bottom-2 left-2 bg-black/75 backdrop-blur text-[8px] font-bold text-[#D4B27C] uppercase tracking-widest px-2 py-0.5 rounded border border-white/5">
+                        {fac.category}
+                      </span>
+                    </div>
+                    <div className="p-3.5 text-left">
+                      <h4 className="text-[11px] font-serif font-semibold text-white truncate group-hover:text-[#D4B27C] transition-colors">{fac.title}</h4>
+                    </div>
                   </div>
                 ))}
               </div>
-              <div className="text-[9px] font-mono tracking-widest text-[#D4B27C]/60 text-right mt-1.5 select-none uppercase">
-                ← Swipe to explore offers →
-              </div>
             </div>
-          </div>
-
-          {/* Hotel Facilities Horizontal Slider */}
-          <div className="space-y-3.5 bg-transparent">
-            <div className="flex justify-between items-center text-xs">
-              <h3 className="font-serif italic font-semibold text-lg text-white">
-                Hotel Facilities
-              </h3>
-            </div>
-
-            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
-              {facilities.map((fac) => (
-                <div
-                  key={fac.id}
-                  onClick={() => setSelectedFacility(fac)}
-                  className="flex-shrink-0 w-64 snap-start bg-white/[0.015] border border-white/5 rounded-2xl overflow-hidden shadow-md cursor-pointer hover:border-[#D4B27C]/30 transition-all duration-300 hover:scale-[1.01] group"
-                >
-                  <div className="h-28 relative overflow-hidden">
-                    <img
-                      src={fac.image_url}
-                      alt={fac.title}
-                      className="w-full h-full object-cover opacity-70 group-hover:opacity-90 group-hover:scale-[1.03] transition-all duration-500"
-                      referrerPolicy="no-referrer"
-                    />
-                    <span className="absolute bottom-2 left-2 bg-black/75 backdrop-blur text-[8px] font-bold text-[#D4B27C] uppercase tracking-widest px-2 py-0.5 rounded border border-white/5">
-                      {fac.category}
-                    </span>
-                  </div>
-                  <div className="p-3.5 text-left">
-                    <h4 className="text-[11px] font-serif font-semibold text-white truncate group-hover:text-[#D4B27C] transition-colors">{fac.title}</h4>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          )}
 
           {/* Dining & Gastronomy Horizontal Slider */}
-          <div className="space-y-3.5 bg-transparent opacity-100">
-            <div className="flex justify-between items-center text-xs">
-              <h3 className="font-serif italic font-semibold text-lg text-white">
-                Dining & Gastronomy
-              </h3>
-            </div>
+          {restaurants && restaurants.length > 0 && (
+            <div className="space-y-3.5 bg-transparent opacity-100">
+              <div className="flex justify-between items-center text-xs">
+                <h3 className="font-serif italic font-semibold text-lg text-white">
+                  Dining & Gastronomy
+                </h3>
+              </div>
 
-            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
-              {restaurants.map((rest) => (
-                <div
-                  key={rest.id}
-                  onClick={() => setSelectedRestaurant(rest)}
-                  className="flex-shrink-0 w-64 snap-start bg-white/[0.015] border border-white/5 rounded-2xl overflow-hidden shadow-md cursor-pointer hover:border-[#D4B27C]/30 transition-all duration-300 hover:scale-[1.01] group"
-                >
-                  <div className="h-28 relative overflow-hidden">
-                    <img
-                      src={rest.image_url}
-                      alt={rest.title}
-                      className="w-full h-full object-cover opacity-70 group-hover:opacity-90 group-hover:scale-[1.03] transition-all duration-500"
-                      referrerPolicy="no-referrer"
-                    />
+              <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
+                {restaurants.map((rest) => (
+                  <div
+                    key={rest.id}
+                    onClick={() => setSelectedRestaurant(rest)}
+                    className="flex-shrink-0 w-64 snap-start bg-white/[0.015] border border-white/5 rounded-2xl overflow-hidden shadow-md cursor-pointer hover:border-[#D4B27C]/30 transition-all duration-300 hover:scale-[1.01] group"
+                  >
+                    <div className="h-28 relative overflow-hidden">
+                      <img
+                        src={rest.image_url}
+                        alt={rest.title}
+                        className="w-full h-full object-cover opacity-70 group-hover:opacity-90 group-hover:scale-[1.03] transition-all duration-500"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                    <div className="p-3.5 text-left">
+                      <h4 className="text-[11px] font-serif font-semibold text-white truncate group-hover:text-[#D4B27C] transition-colors">{rest.title}</h4>
+                    </div>
                   </div>
-                  <div className="p-3.5 text-left">
-                    <h4 className="text-[11px] font-serif font-semibold text-white truncate group-hover:text-[#D4B27C] transition-colors">{rest.title}</h4>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* High Fidelity feedback banner matching the screengrab */}
-          <div className="bg-[#F6F4EF] text-slate-900 rounded-t-[40px] -mx-6 px-6 py-11 text-center space-y-6 select-none shadow-inner border-t border-white/5">
-            <h3 className="font-serif text-[26px] tracking-normal text-[#1C1C1C] font-medium leading-none">
-              Loved Your Stay?
-            </h3>
-            <p id="feedback-paragraph" className="text-[#4f4f4f] text-[15px] leading-relaxed max-w-[280px] mx-auto font-sans font-normal">
-              Your feedback helps future guests discover the best of @Sandton
-            </p>
-            <div className="pt-2">
-              <a
-                href={masterConfig.feedbackUrl || "https://g.page/r/some-hotel-review"}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-block tracking-[0.2em] font-sans font-bold text-[12px] text-black border-b-[1.5px] border-black pb-1 uppercase hover:opacity-80 active:scale-95 transition-all cursor-pointer"
-              >
-                LEAVE A REVIEW
-              </a>
+          {masterConfig.feedbackUrl && (
+            <div className="bg-[#F6F4EF] text-slate-900 rounded-t-[40px] -mx-6 px-6 py-11 text-center space-y-6 select-none shadow-inner border-t border-white/5">
+              <h3 className="font-serif text-[26px] tracking-normal text-[#1C1C1C] font-medium leading-none">
+                Loved Your Stay?
+              </h3>
+              <p id="feedback-paragraph" className="text-[#4f4f4f] text-[15px] leading-relaxed max-w-[280px] mx-auto font-sans font-normal">
+                Your feedback helps future guests discover the best of @Sandton
+              </p>
+              <div className="pt-2">
+                <a
+                  href={masterConfig.feedbackUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-block tracking-[0.2em] font-sans font-bold text-[12px] text-black border-b-[1.5px] border-black pb-1 uppercase hover:opacity-80 active:scale-95 transition-all cursor-pointer"
+                >
+                  LEAVE A REVIEW
+                </a>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Local Discovery Recommendations: Discover Joburg styled as a horizontally scrollable container with 15px fonts */}
-          <div id="discover-joburg-section" className="space-y-4 bg-transparent pt-3 text-center scroll-mt-6">
-            <div className="space-y-1.5 my-3 select-none">
-              <h3 className="font-serif italic font-semibold text-xl text-white tracking-wide">
-                Discover Joburg
-              </h3>
-              <p className="text-[11px] font-sans font-bold tracking-[0.25em] text-[#cca472] uppercase">
-                Curated by Recos
-              </p>
+          {recos && recos.length > 0 && (
+            <div id="discover-joburg-section" className="space-y-4 bg-transparent pt-3 text-center scroll-mt-6">
+              <div className="space-y-1.5 my-3 select-none">
+                <h3 className="font-serif italic font-semibold text-xl text-white tracking-wide">
+                  Discover Joburg
+                </h3>
+                <p className="text-[11px] font-sans font-bold tracking-[0.25em] text-[#cca472] uppercase">
+                  Curated by Recos
+                </p>
+              </div>
+
+              {(() => {
+                const cardRecos = recos.filter((r) => r.type !== "button" && r.status !== "pending_approval");
+                const buttonRecos = recos.filter((r) => r.type === "button" && r.status !== "pending_approval");
+                
+                return (
+                  <div className="space-y-4">
+                    {cardRecos.length > 0 && (
+                      <div className="flex gap-3.5 overflow-x-auto pb-4 scrollbar-none snap-x snap-mandatory px-6 -mx-6">
+                        {cardRecos.map((reco) => (
+                          <div
+                            key={reco.id}
+                            onClick={() => handleOpenReco(reco)}
+                            className="flex-shrink-0 w-[230px] aspect-[4/5] snap-start bg-black/40 border border-white/5 rounded-2xl overflow-hidden relative cursor-pointer group shadow-lg transition-all duration-300 hover:scale-[1.02] hover:border-[#cca472]/30"
+                          >
+                            <img
+                              src={reco.image_url}
+                              alt={reco.title}
+                              className="w-full h-full object-cover opacity-80 group-hover:opacity-95 transition-all duration-500 group-hover:scale-[1.05]"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/25 to-transparent pointer-events-none" />
+                            <div className="absolute inset-x-3 bottom-3 text-left">
+                              <h4 className="text-[15px] font-serif font-bold text-white tracking-wide line-clamp-2 leading-tight">
+                                {reco.title}
+                              </h4>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {buttonRecos.length > 0 && (
+                      <div className="space-y-2 mt-4 text-left">
+                        {buttonRecos.map((reco) => (
+                          <div
+                            key={reco.id}
+                            onClick={() => handleOpenReco(reco)}
+                            className="w-full bg-[#141414] border border-white/[0.04] hover:bg-[#1a1a1a] hover:border-[#cca472]/20 rounded-xl p-4 flex justify-between items-center cursor-pointer transition-all duration-200 group active:scale-[0.99]"
+                          >
+                            <div className="space-y-1.5 pr-4 flex-1">
+                              <h4 className="text-[13px] font-sans font-bold text-slate-100 group-hover:text-[#cca472] transition-colors leading-tight">
+                                {reco.title}
+                              </h4>
+                              {reco.paragraph && (
+                                <p className="text-[11px] text-slate-400 font-normal line-clamp-1 leading-normal font-sans">
+                                  {reco.paragraph}
+                                </p>
+                              )}
+                            </div>
+                            <div className="w-8 h-8 rounded-full bg-white/[0.03] border border-white/[0.04] flex items-center justify-center text-slate-400 group-hover:text-white group-hover:bg-[#cca472]/10 group-hover:border-[#cca472]/20 transition-all flex-shrink-0">
+                              <ExternalLink size={13} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
-
-            {(() => {
-              const cardRecos = recos.filter((r) => r.type !== "button" && r.status !== "pending_approval");
-              const buttonRecos = recos.filter((r) => r.type === "button" && r.status !== "pending_approval");
-              
-              return (
-                <div className="space-y-4">
-                  {cardRecos.length > 0 && (
-                    <div className="flex gap-3.5 overflow-x-auto pb-4 scrollbar-none snap-x snap-mandatory px-6 -mx-6">
-                      {cardRecos.map((reco) => (
-                        <div
-                          key={reco.id}
-                          onClick={() => handleOpenReco(reco)}
-                          className="flex-shrink-0 w-[230px] aspect-[4/5] snap-start bg-black/40 border border-white/5 rounded-2xl overflow-hidden relative cursor-pointer group shadow-lg transition-all duration-300 hover:scale-[1.02] hover:border-[#cca472]/30"
-                        >
-                          <img
-                            src={reco.image_url}
-                            alt={reco.title}
-                            className="w-full h-full object-cover opacity-80 group-hover:opacity-95 transition-all duration-500 group-hover:scale-[1.05]"
-                            referrerPolicy="no-referrer"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/25 to-transparent pointer-events-none" />
-                          <div className="absolute inset-x-3 bottom-3 text-left">
-                            <h4 className="text-[15px] font-serif font-bold text-white tracking-wide line-clamp-2 leading-tight">
-                              {reco.title}
-                            </h4>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {buttonRecos.length > 0 && (
-                    <div className="space-y-2 mt-4 text-left">
-                      {buttonRecos.map((reco) => (
-                        <div
-                          key={reco.id}
-                          onClick={() => handleOpenReco(reco)}
-                          className="w-full bg-[#141414] border border-white/[0.04] hover:bg-[#1a1a1a] hover:border-[#cca472]/20 rounded-xl p-4 flex justify-between items-center cursor-pointer transition-all duration-200 group active:scale-[0.99]"
-                        >
-                          <div className="space-y-1.5 pr-4 flex-1">
-                            <h4 className="text-[13px] font-sans font-bold text-slate-100 group-hover:text-[#cca472] transition-colors leading-tight">
-                              {reco.title}
-                            </h4>
-                            {reco.paragraph && (
-                              <p className="text-[11px] text-slate-400 font-normal line-clamp-1 leading-normal font-sans">
-                                {reco.paragraph}
-                              </p>
-                            )}
-                          </div>
-                          <div className="w-8 h-8 rounded-full bg-white/[0.03] border border-white/[0.04] flex items-center justify-center text-slate-400 group-hover:text-white group-hover:bg-[#cca472]/10 group-hover:border-[#cca472]/20 transition-all flex-shrink-0">
-                            <ExternalLink size={13} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-          </div>
+          )}
 
           {/* Simple footer drag handle line to logout */}
           <div 

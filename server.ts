@@ -5,6 +5,9 @@ import fs from "fs";
 import { GoogleGenAI, Type } from "@google/genai";
 // @ts-ignore
 import mammoth from "mammoth";
+import dotenv from "dotenv";
+dotenv.config();
+import { createClient } from "@supabase/supabase-js";
 
 let bootupPhaseActive = true;
 
@@ -44,7 +47,7 @@ async function startServer() {
     alertBannerText: "Happy Father's Day Dads!"
   };
 
-  const masterPromotions = [
+  const defaultSeedPromotions = [
     {
       id: "1",
       title: "Clubhouse Fixture",
@@ -63,7 +66,7 @@ async function startServer() {
     }
   ];
 
-  const masterFacilities = [
+  const defaultSeedFacilities = [
     {
       id: "fac-1",
       title: "The Sky Pool",
@@ -94,38 +97,132 @@ async function startServer() {
     }
   ];
 
-  const masterRestaurants = [
+  const defaultSeedRestaurants = [
     {
-      id: "r-1",
-      title: "Clubhouse Restaurant & Bar",
-      description: "Elegant fine dining overlooking the golf course, with high ceilings and cozy fire places.",
-      image_url: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80",
-      cta_enabled: true,
-      cta_text: "Make a Booking",
-      cta_url: "https://www.dineplan.com/restaurants/sandton-hotel-restaurant",
+      image_url: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?q=80&w=2000",
+      title: "@Sandton Restaurant",
       subsections: [
         {
-          id: "sub-1",
-          title: "The Clubhouse Lounge",
-          description: "Relaxed atmosphere with hand-styled drinks.",
+          id: "sub-1780993408261-0-0-89",
+          title: "Daily Services",
           timings: [
-            { id: "time-1", name: "Breakfast", openTime: "06:00", closeTime: "11:00" },
-            { id: "time-2", name: "Dinner", openTime: "18:00", closeTime: "22:00" }
-          ]
-        },
-        {
-          id: "sub-2",
-          title: "The Cigar Bar",
-          description: "A customized ambient bar offering premium quality cubans.",
-          timings: [
-            { id: "time-3", name: "After Hours", openTime: "21:00", closeTime: "02:00" }
+            {
+              name: "Breakfast Buffet Weekdays",
+              openTime: "06:30",
+              closeTime: "10:00",
+              id: "time-1780993408261-0-0-0"
+            },
+            {
+              closeTime: "10:30",
+              id: "time-1780993408261-0-0-1",
+              name: "Breakfast Buffet Weekends",
+              openTime: "07:00"
+            },
+            {
+              name: "Lunch Service",
+              openTime: "12:00",
+              closeTime: "15:00",
+              id: "time-1780993408261-0-0-2"
+            },
+            {
+              name: "Dinner Service",
+              openTime: "18:00",
+              closeTime: "22:30",
+              id: "time-1780993408261-0-0-3"
+            }
           ]
         }
-      ]
+      ],
+      cta_enabled: true,
+      description: "Flagship fine-dining offering modern South African and international cuisine, grills, and house-made pastas in an elegant setting.",
+      id: "rest-1780993408261-0-68",
+      cta_text: "Reserve Restaurant Table",
+      cta_url: "/api/bookings/sandton-restaurant"
+    },
+    {
+      subsections: [
+        {
+          title: "Operating Hours",
+          timings: [
+            {
+              id: "time-1780993408261-1-0-0",
+              closeTime: "18:00",
+              openTime: "12:00",
+              name: "Afternoon Pool Bar"
+            },
+            {
+              closeTime: "21:00",
+              id: "time-1780993408261-1-0-1",
+              name: "Sunset Sundowner Bar",
+              openTime: "17:00"
+            },
+            {
+              id: "time-1780993408261-1-0-2",
+              closeTime: "22:00",
+              openTime: "18:00",
+              name: "Evening Tapas & Cocktails"
+            }
+          ],
+          id: "sub-1780993408261-1-0-64"
+        }
+      ],
+      title: "The Clubhouse Bar & Tapas Lounge",
+      image_url: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?q=80&w=2000",
+      cta_enabled: true,
+      cta_url: "/api/bookings/clubhouse",
+      cta_text: "Book Clubhouse Table",
+      description: "Vibrant rooftop social hub featuring panoramic city views, handcrafted cocktails, and tapas-style casual dining.",
+      id: "rest-1780993408261-1-425"
+    },
+    {
+      cta_enabled: false,
+      title: "Pool Bar",
+      image_url: "https://images.unsplash.com/photo-1563297316-e41785e6834d?q=80&w=2000",
+      subsections: [
+        {
+          title: "Daily Hours",
+          timings: [
+            {
+              openTime: "06:00",
+              name: "Pool Bar Service",
+              id: "time-1780993408261-2-0-0",
+              closeTime: "18:00"
+            }
+          ],
+          id: "sub-1780993408261-2-0-37"
+        }
+      ],
+      cta_url: "",
+      cta_text: "Walk-ins Only",
+      id: "rest-1780993408261-2-858",
+      description: "Casual poolside service offering cocktails, coffees, burgers, and light bites in a relaxed open-air setting."
+    },
+    {
+      image_url: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=2000",
+      subsections: [
+        {
+          id: "sub-1780993408261-3-0-22",
+          timings: [
+            {
+              name: "Deli & Coffee Bar",
+              openTime: "07:00",
+              closeTime: "19:00",
+              id: "time-1780993408261-3-0-0"
+            }
+          ],
+          title: "Daily Hours"
+        }
+      ],
+      title: "Benmore Deli & Cafe",
+      cta_enabled: false,
+      cta_url: "",
+      cta_text: "Walk-ins Only",
+      description: "Bright grab-and-go cafe offering artisan coffee, freshly prepared sandwiches, wraps, and baked pastries.",
+      id: "rest-1780993408261-3-369"
     }
   ];
 
-  const masterRecos = [
+  const defaultSeedRecos = [
     {
       id: "reco-1",
       title: "Nelson Mandela Square",
@@ -155,48 +252,13 @@ async function startServer() {
     }
   ];
 
+  const masterPromotions: any[] = [];
+  const masterFacilities: any[] = [];
+  const masterRestaurants: any[] = [];
+  const masterRecos: any[] = [];
+
   // Transactions logs/state
-  const tasks: any[] = [
-    {
-      id: "task-1",
-      title: "Fresh linens & towels requested",
-      room: "104",
-      status: "received",
-      createdAt: Date.now() - 360 * 1000,
-      informedDept: "Housekeeping",
-      details: {}
-    },
-    {
-      id: "task-2",
-      title: "Airport luxury transit shuttle",
-      room: "205",
-      status: "in_progress",
-      createdAt: Date.now() - 1500 * 1000,
-      actionedAt: Date.now() - 1200 * 1000,
-      claimedBy: "Dumi Ncube",
-      informedDept: "Concierge",
-      details: {
-        flightNumber: "SA314",
-        dateTime: "2026-06-05T20:00",
-        route: "OR Tambo",
-        travellers: 2,
-        vehicle: "Executive SUV"
-      }
-    },
-    {
-      id: "task-3",
-      title: "In-room champagne set up",
-      room: "302",
-      status: "completed",
-      createdAt: Date.now() - 3600 * 1000,
-      actionedAt: Date.now() - 3200 * 1000,
-      completedAt: Date.now() - 2400 * 1000,
-      claimedBy: "Sibusiso Zulu",
-      completedBy: "Sibusiso Zulu",
-      informedDept: "F&B",
-      details: {}
-    }
-  ];
+  const tasks: any[] = [];
 
   const feedbackLogs: any[] = [
     {
@@ -249,175 +311,496 @@ async function startServer() {
     "302": true
   };
 
-  const chatMessages: any[] = [
-    {
-      role: "assistant",
-      content: "Hello Sarah Jenkins! Welcome to Sandton Hotel. How can I help you today?",
-      timestamp: new Date(Date.now() - 3600 * 1000).toLocaleTimeString(),
-      senderName: "Guest Assistant",
-      roomNumber: "104"
-    },
-    {
-      role: "user",
-      content: "Hi, can you send some fresh towels up to Room 104?",
-      timestamp: new Date(Date.now() - 400 * 1000).toLocaleTimeString(),
-      senderName: "Sarah Jenkins",
-      roomNumber: "104"
-    },
-    {
-      role: "assistant",
-      content: "Of course! I have created a request to send fresh linen and towels up to Room 104. Housekeeping is on it.",
-      timestamp: new Date(Date.now() - 360 * 1000).toLocaleTimeString(),
-      senderName: "Guest Assistant",
-      roomNumber: "104"
-    },
-    {
-      role: "assistant",
-      content: "Hello Dumi Ncube! Welcome to Sandton Hotel. How can I help you today?",
-      timestamp: new Date(Date.now() - 7200 * 1000).toLocaleTimeString(),
-      senderName: "Guest Assistant",
-      roomNumber: "205"
-    },
-    {
-      role: "user",
-      content: "We need an airport shuttle booked for tonight.",
-      timestamp: new Date(Date.now() - 1500 * 1000).toLocaleTimeString(),
-      senderName: "Dumi Ncube",
-      roomNumber: "205"
-    },
-    {
-      role: "assistant",
-      content: "Sure! Please fill out the booking form in our Shuttle tab, or I can help you set it up. I have notified our Concierge desk to assist.",
-      timestamp: new Date(Date.now() - 1480 * 1000).toLocaleTimeString(),
-      senderName: "Guest Assistant",
-      roomNumber: "205"
-    }
-  ];
+  const chatMessages: any[] = [];
 
-  // --- BOOT GUARD STARTUP & LOCAL BACKUP HANDLERS ---
-  const configDbPath = path.resolve("./chats_db.json");
-  const defaultDbData = {
-    chats: [],
-    tasks: [],
-    staffLogons: [],
-    emergency: null,
-    departments: ["Housekeeping", "Concierge", "Spa", "Butlers"]
+  // Initialize Supabase client
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+  const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+  const supabaseClient = (supabaseUrl && supabaseAnonKey && !supabaseUrl.includes("your-project-url"))
+    ? createClient(supabaseUrl, supabaseAnonKey)
+    : null;
+
+  if (supabaseClient) {
+    console.log("[SUPABASE] Server-side client initialized successfully.");
+  } else {
+    console.warn("[SUPABASE] Server-side client could not be initialized. Missing URL or Anon Key.");
+  }
+
+  // --- SUPABASE MAPPER & HELPERS ---
+  const tableMapping: Record<string, string> = {
+    promotions: "promotions",
+    facilities: "facilities",
+    restaurants: "restaurants",
+    recos: "recos",
+    tasks: "tasks",
+    chatMessages: "chatMessages",
+    staffLogons: "staffLogons",
+    feedbackLogs: "feedbackLogs",
+    recoInteractions: "recoInteractions",
+    system_config: "system_config"
   };
-  if (!fs.existsSync(configDbPath) || fs.statSync(configDbPath).size === 0) {
-    fs.writeFileSync(configDbPath, JSON.stringify(defaultDbData, null, 2), "utf8");
-    console.log("[BOOT] Created or re-initialized default chats_db.json.");
-  }
 
-  let localBackupData: any = {};
-  try {
-    const fileContent = fs.readFileSync(configDbPath, "utf8").trim();
-    if (fileContent) {
-      localBackupData = JSON.parse(fileContent);
-      console.log("[BOOT] Loaded data from local chats_db.json successfully.");
-    } else {
-      localBackupData = defaultDbData;
+  async function dbLoadDocumentSupabase(collection: string, docId: string): Promise<any | null> {
+    if (!supabaseClient) return null;
+    try {
+      const table = tableMapping[collection] || collection;
+      const snakeTable = table.replace(/([A-Z])/g, "_$1").toLowerCase();
+      
+      let activeTable = table;
+      const { error: checkError } = await supabaseClient.from(table).select("id").limit(1);
+      if (checkError && checkError.code === "42P01") {
+        activeTable = snakeTable;
+      }
+
+      const { data, error } = await supabaseClient
+        .from(activeTable)
+        .select("*")
+        .eq("id", docId)
+        .maybeSingle();
+
+      if (error) {
+        if (error.code !== "PGRST116") {
+          console.warn(`[SUPABASE] Error loading document ${docId} from ${activeTable}:`, error.message);
+        }
+        return null;
+      }
+
+      if (!data) return null;
+
+      if (data.data && typeof data.data === "object" && Object.keys(data).length <= 3) {
+        return { id: data.id, ...data.data };
+      }
+      return data;
+    } catch (err: any) {
+      console.warn(`[SUPABASE] Exception loading document ${docId} from ${collection}:`, err.message);
+      return null;
     }
-  } catch (err) {
-    console.error("[BOOT] Failed to parse chats_db.json, using defaults:", err);
-    localBackupData = defaultDbData;
   }
 
-  // Populate in-memory arrays from local backup (if they exist in localBackupData)
-  if (Array.isArray(localBackupData.tasks)) {
-    tasks.length = 0;
-    tasks.push(...localBackupData.tasks);
+  async function dbSaveDocumentSupabase(collection: string, docId: string, data: any) {
+    if (!supabaseClient) return;
+    try {
+      const table = tableMapping[collection] || collection;
+      const snakeTable = table.replace(/([A-Z])/g, "_$1").toLowerCase();
+      
+      let activeTable = table;
+      const { error: checkError } = await supabaseClient.from(table).select("id").limit(1);
+      if (checkError && checkError.code === "42P01") {
+        activeTable = snakeTable;
+      }
+
+      // Try directly saving object fields
+      const { error } = await supabaseClient
+        .from(activeTable)
+        .upsert({ id: docId, ...data });
+
+      if (error) {
+        console.warn(`[SUPABASE] Direct save document failed for ${activeTable}/${docId}, trying wrapping in 'data' jsonb:`, error.message);
+        const { error: fallbackError } = await supabaseClient
+          .from(activeTable)
+          .upsert({ id: docId, data: data });
+        if (fallbackError) {
+          console.error(`[SUPABASE] Fallback save document failed for ${activeTable}/${docId}:`, fallbackError.message);
+        }
+      } else {
+        console.log(`[SUPABASE] Saved document ${docId} in table ${activeTable}`);
+      }
+    } catch (err: any) {
+      console.error(`[SUPABASE] Exception saving document ${docId} in ${collection}:`, err.message);
+    }
   }
-  if (Array.isArray(localBackupData.staffLogons)) {
-    staffLogons.length = 0;
-    staffLogons.push(...localBackupData.staffLogons);
+
+  async function dbLoadCollectionSupabase(collection: string): Promise<any[]> {
+    if (!supabaseClient) return [];
+    try {
+      const table = tableMapping[collection] || collection;
+      const snakeTable = table.replace(/([A-Z])/g, "_$1").toLowerCase();
+      
+      let activeTable = table;
+      const { error: checkError } = await supabaseClient.from(table).select("id").limit(1);
+      if (checkError && checkError.code === "42P01") {
+        activeTable = snakeTable;
+      }
+
+      const { data, error } = await supabaseClient.from(activeTable).select("*");
+      if (error) {
+        console.warn(`[SUPABASE] Error loading collection ${collection} from ${activeTable}:`, error.message);
+        return [];
+      }
+
+      return (data || []).map((row: any) => {
+        if (row.data && typeof row.data === "object" && Object.keys(row).length <= 3) {
+          return { id: row.id, ...row.data };
+        }
+        return row;
+      });
+    } catch (err: any) {
+      console.warn(`[SUPABASE] Exception loading collection ${collection}:`, err.message);
+      return [];
+    }
   }
-  if (localBackupData.emergency !== undefined) {
-    emergencyMode = !!localBackupData.emergency;
-  }
-  if (localBackupData.emergencyRoom !== undefined) {
-    emergencyRoom = String(localBackupData.emergencyRoom || "");
-  }
-  if (localBackupData.emergencyGuestName !== undefined) {
-    emergencyGuestName = String(localBackupData.emergencyGuestName || "");
-  }
-  if (localBackupData.emergencyEscalated !== undefined) {
-    emergencyEscalated = !!localBackupData.emergencyEscalated;
-  }
-  if (localBackupData.emergencyAttendant !== undefined) {
-    emergencyAttendant = String(localBackupData.emergencyAttendant || "");
-  }
-  if (Array.isArray(localBackupData.feedbackLogs)) {
-    feedbackLogs.length = 0;
-    feedbackLogs.push(...localBackupData.feedbackLogs);
-  }
-  if (Array.isArray(localBackupData.recoInteractions)) {
-    recoInteractions.length = 0;
-    recoInteractions.push(...localBackupData.recoInteractions);
-  }
-  if (localBackupData.chatbotStatus) {
-    Object.assign(chatbotStatus, localBackupData.chatbotStatus);
-  }
-  
-  // Handle parsing of chats/chatMessages securely
-  if (Array.isArray(localBackupData.chats)) {
-    const hasNestedMessages = localBackupData.chats.some((c: any) => c && Array.isArray(c.messages));
-    if (hasNestedMessages) {
-      const flat: any[] = [];
-      for (const chatThread of localBackupData.chats) {
-        if (chatThread && Array.isArray(chatThread.messages)) {
-          for (const msg of chatThread.messages) {
-            flat.push({
-              ...msg,
-              roomNumber: msg.roomNumber || chatThread.roomNumber || "0",
-              senderName: msg.senderName || chatThread.guestName,
-            });
+
+  async function dbSaveCollectionSupabase(collection: string, array: any[]) {
+    if (!supabaseClient) return;
+    try {
+      const table = tableMapping[collection] || collection;
+      const snakeTable = table.replace(/([A-Z])/g, "_$1").toLowerCase();
+      
+      let activeTable = table;
+      const { error: checkError } = await supabaseClient.from(table).select("id").limit(1);
+      if (checkError && checkError.code === "42P01") {
+        activeTable = snakeTable;
+      }
+
+      const { data: existingData, error: loadError } = await supabaseClient.from(activeTable).select("id");
+      const existingIds = new Set((existingData || []).map((d: any) => String(d.id)));
+
+      const newIds = new Set<string>();
+      const upsertBatch: any[] = [];
+
+      for (const item of array) {
+        const id = item.id ? String(item.id) : `auto_${Math.random().toString(36).substr(2, 9)}`;
+        newIds.add(id);
+        upsertBatch.push({ id, ...item });
+      }
+
+      if (upsertBatch.length > 0) {
+        const { error: upsertError } = await supabaseClient.from(activeTable).upsert(upsertBatch);
+        if (upsertError) {
+          console.warn(`[SUPABASE] Direct upsert failed for ${activeTable}, trying fallback strip of non-primitives:`, upsertError.message);
+          const cleanedBatch = upsertBatch.map(item => {
+            const cleanItem: any = { id: item.id };
+            for (const key of Object.keys(item)) {
+              if (typeof item[key] !== "object" || item[key] === null || Array.isArray(item[key])) {
+                cleanItem[key] = item[key];
+              }
+            }
+            return cleanItem;
+          });
+          const { error: fallbackError } = await supabaseClient.from(activeTable).upsert(cleanedBatch);
+          if (fallbackError) {
+            console.error(`[SUPABASE] Fallback upsert also failed for ${activeTable}:`, fallbackError.message);
           }
         }
       }
-      chatMessages.length = 0;
-      chatMessages.push(...flat);
+
+      const idsToDelete = Array.from(existingIds).filter(id => !newIds.has(id));
+      if (idsToDelete.length > 0) {
+        const { error: deleteError } = await supabaseClient.from(activeTable).delete().in("id", idsToDelete);
+        if (deleteError) {
+          console.error(`[SUPABASE] Delete error for ${activeTable}:`, deleteError.message);
+        }
+      }
+
+      console.log(`[SUPABASE] Synchronized table ${activeTable} with ${array.length} items.`);
+    } catch (err: any) {
+      console.error(`[SUPABASE] Exception saving collection ${collection}:`, err.message);
+    }
+  }
+
+  async function syncAllToSupabase() {
+    if (!supabaseClient || bootupPhaseActive) return;
+    try {
+      console.log("[SUPABASE] Synchronizing entire database to Supabase...");
+      await Promise.all([
+        dbSaveDocumentSupabase("system_config", "master", masterConfig),
+        dbSaveDocumentSupabase("system_config", "emergency", {
+          emergencyMode,
+          emergencyRoom,
+          emergencyGuestName,
+          emergencyEscalated,
+          emergencyAttendant
+        }),
+        dbSaveDocumentSupabase("system_config", "chatbot", chatbotStatus),
+        dbSaveCollectionSupabase("promotions", masterPromotions),
+        dbSaveCollectionSupabase("facilities", masterFacilities),
+        dbSaveCollectionSupabase("restaurants", masterRestaurants),
+        dbSaveCollectionSupabase("recos", masterRecos),
+        dbSaveCollectionSupabase("tasks", tasks),
+        dbSaveCollectionSupabase("chatMessages", chatMessages),
+        dbSaveCollectionSupabase("staffLogons", staffLogons),
+        dbSaveCollectionSupabase("feedbackLogs", feedbackLogs),
+        dbSaveCollectionSupabase("recoInteractions", recoInteractions)
+      ]);
+      console.log("[SUPABASE] Sync to Supabase completed successfully.");
+    } catch (err: any) {
+      console.error("[SUPABASE] Failed to sync database to Supabase:", err.message);
+    }
+  }
+
+  // --- DATABASE BOOT STRAP PROCESS ---
+  const isProd = process.env.NODE_ENV === "production";
+  const configDbPath = isProd 
+    ? path.resolve("./chats_db_prod.json") 
+    : path.resolve("./chats_db_dev.json");
+
+  // If in production and chats_db_prod.json doesn't exist but chats_db.json does, migrate it
+  if (isProd && !fs.existsSync(configDbPath) && fs.existsSync(path.resolve("./chats_db.json"))) {
+    try {
+      fs.copyFileSync(path.resolve("./chats_db.json"), configDbPath);
+      console.log("[BOOT] Migrated local chats_db.json to chats_db_prod.json.");
+    } catch (e) {
+      console.error("[BOOT] Failed to migrate local chats_db.json:", e);
+    }
+  }
+
+  let localBackupData: any = {};
+  if (fs.existsSync(configDbPath)) {
+    try {
+      const fileContent = fs.readFileSync(configDbPath, "utf8").trim();
+      if (fileContent) {
+        localBackupData = JSON.parse(fileContent);
+        console.log(`[BOOT] Read local backup database from ${path.basename(configDbPath)} successfully.`);
+      }
+    } catch (err) {
+      console.error(`[BOOT] Failed to parse local ${path.basename(configDbPath)}:`, err);
+    }
+  }
+
+  let needsSyncToSupabase = false;
+  let needsLocalSave = false;
+
+  // Try loading from Supabase first
+  let loadedFromSupabase = false;
+  if (supabaseClient) {
+    try {
+      const masterDoc = await dbLoadDocumentSupabase("system_config", "master");
+      if (masterDoc) {
+        console.log("[SUPABASE] Found existing Supabase database config. Loading all collections...");
+        
+        // 1. Config
+        for (const key in masterConfig) {
+          delete (masterConfig as any)[key];
+        }
+        Object.assign(masterConfig, masterDoc);
+
+        // 2. Emergency mode state
+        const emergencyDoc = await dbLoadDocumentSupabase("system_config", "emergency");
+        if (emergencyDoc) {
+          emergencyMode = !!emergencyDoc.emergencyMode;
+          emergencyRoom = String(emergencyDoc.emergencyRoom || "");
+          emergencyGuestName = String(emergencyDoc.emergencyGuestName || "");
+          emergencyEscalated = !!emergencyDoc.emergencyEscalated;
+          emergencyAttendant = String(emergencyDoc.emergencyAttendant || "");
+        }
+
+        // 3. Chatbot status
+        const chatbotDoc = await dbLoadDocumentSupabase("system_config", "chatbot");
+        if (chatbotDoc) {
+          for (const key in chatbotStatus) delete chatbotStatus[key];
+          Object.assign(chatbotStatus, chatbotDoc);
+        }
+
+        // 4. Promotions
+        const dbPromos = await dbLoadCollectionSupabase("promotions");
+        if (dbPromos && dbPromos.length > 0) {
+          masterPromotions.length = 0;
+          masterPromotions.push(...dbPromos);
+        }
+
+        // 5. Facilities
+        const dbFacilities = await dbLoadCollectionSupabase("facilities");
+        if (dbFacilities && dbFacilities.length > 0) {
+          masterFacilities.length = 0;
+          masterFacilities.push(...dbFacilities);
+        }
+
+        // 6. Restaurants
+        const dbRestaurants = await dbLoadCollectionSupabase("restaurants");
+        if (dbRestaurants && dbRestaurants.length > 0) {
+          masterRestaurants.length = 0;
+          masterRestaurants.push(...dbRestaurants);
+        }
+
+        // 7. Recommendations
+        const dbRecos = await dbLoadCollectionSupabase("recos");
+        if (dbRecos && dbRecos.length > 0) {
+          masterRecos.length = 0;
+          masterRecos.push(...dbRecos);
+        }
+
+        // 8. Tasks
+        const dbTasks = await dbLoadCollectionSupabase("tasks");
+        if (dbTasks && dbTasks.length > 0) {
+          tasks.length = 0;
+          tasks.push(...dbTasks);
+        }
+
+        // 9. Chats / Messages
+        const dbChats = await dbLoadCollectionSupabase("chatMessages");
+        if (dbChats && dbChats.length > 0) {
+          chatMessages.length = 0;
+          chatMessages.push(...dbChats);
+        }
+
+        // 10. Staff
+        const dbStaff = await dbLoadCollectionSupabase("staffLogons");
+        if (dbStaff && dbStaff.length > 0) {
+          staffLogons.length = 0;
+          staffLogons.push(...dbStaff);
+        }
+
+        // 11. Feedback
+        const dbFeedback = await dbLoadCollectionSupabase("feedbackLogs");
+        if (dbFeedback && dbFeedback.length > 0) {
+          feedbackLogs.length = 0;
+          feedbackLogs.push(...dbFeedback);
+        }
+
+        // 12. Reco Interactions
+        const dbInteractions = await dbLoadCollectionSupabase("recoInteractions");
+        if (dbInteractions && dbInteractions.length > 0) {
+          recoInteractions.length = 0;
+          recoInteractions.push(...dbInteractions);
+        }
+
+        loadedFromSupabase = true;
+        console.log("[SUPABASE] Successfully loaded all database records from Supabase.");
+        needsLocalSave = true; // Ensure local JSON backup/cache is written/updated
+      } else {
+        console.log("[SUPABASE] No master config found on Supabase. Table is empty or offline.");
+      }
+    } catch (err: any) {
+      console.warn("[SUPABASE] Error loading database records from Supabase (offline/dev sandbox fallback):", err.message);
+    }
+  }
+
+  if (!loadedFromSupabase) {
+    // Supabase is empty! Check if we should migrate from local JSON backup
+    console.log("[BOOT] Supabase database is empty. Looking for local backup JSON...");
+    
+    const hasLocalBackupData = localBackupData && (
+      (Array.isArray(localBackupData.promotions) && localBackupData.promotions.length > 0) ||
+      (Array.isArray(localBackupData.chatMessages) && localBackupData.chatMessages.length > 0) ||
+      (Array.isArray(localBackupData.chats) && localBackupData.chats.length > 0)
+    );
+
+    if (hasLocalBackupData) {
+      console.log("[BOOT] Found local backup file. Migrating all collections to Supabase...");
+      
+      // Load configurations
+      if (localBackupData.config) {
+        for (const key in masterConfig) {
+          delete (masterConfig as any)[key];
+        }
+        Object.assign(masterConfig, localBackupData.config);
+      }
+
+      // Load collections
+      if (Array.isArray(localBackupData.promotions)) {
+        masterPromotions.length = 0;
+        masterPromotions.push(...localBackupData.promotions);
+      }
+      if (Array.isArray(localBackupData.facilities)) {
+        masterFacilities.length = 0;
+        masterFacilities.push(...localBackupData.facilities);
+      }
+      if (Array.isArray(localBackupData.restaurants)) {
+        masterRestaurants.length = 0;
+        masterRestaurants.push(...localBackupData.restaurants);
+      }
+      if (Array.isArray(localBackupData.recos)) {
+        masterRecos.length = 0;
+        masterRecos.push(...localBackupData.recos);
+      }
+      if (Array.isArray(localBackupData.tasks)) {
+        tasks.length = 0;
+        tasks.push(...localBackupData.tasks);
+      }
+      if (Array.isArray(localBackupData.staffLogons)) {
+        staffLogons.length = 0;
+        staffLogons.push(...localBackupData.staffLogons);
+      }
+      if (localBackupData.emergency !== undefined) {
+        emergencyMode = !!localBackupData.emergency;
+      }
+      if (localBackupData.emergencyRoom !== undefined) {
+        emergencyRoom = String(localBackupData.emergencyRoom || "");
+      }
+      if (localBackupData.emergencyGuestName !== undefined) {
+        emergencyGuestName = String(localBackupData.emergencyGuestName || "");
+      }
+      if (localBackupData.emergencyEscalated !== undefined) {
+        emergencyEscalated = !!localBackupData.emergencyEscalated;
+      }
+      if (localBackupData.emergencyAttendant !== undefined) {
+        emergencyAttendant = String(localBackupData.emergencyAttendant || "");
+      }
+      if (Array.isArray(localBackupData.feedbackLogs)) {
+        feedbackLogs.length = 0;
+        feedbackLogs.push(...localBackupData.feedbackLogs);
+      }
+      if (Array.isArray(localBackupData.recoInteractions)) {
+        recoInteractions.length = 0;
+        recoInteractions.push(...localBackupData.recoInteractions);
+      }
+      if (localBackupData.chatbotStatus) {
+        Object.assign(chatbotStatus, localBackupData.chatbotStatus);
+      }
+
+      // Parse messages
+      if (Array.isArray(localBackupData.chats)) {
+        const hasNestedMessages = localBackupData.chats.some((c: any) => c && Array.isArray(c.messages));
+        if (hasNestedMessages) {
+          const flat: any[] = [];
+          for (const chatThread of localBackupData.chats) {
+            if (chatThread && Array.isArray(chatThread.messages)) {
+              for (const msg of chatThread.messages) {
+                flat.push({
+                  ...msg,
+                  roomNumber: msg.roomNumber || chatThread.roomNumber || "0",
+                  senderName: msg.senderName || chatThread.guestName,
+                });
+              }
+            }
+          }
+          chatMessages.length = 0;
+          chatMessages.push(...flat);
+        } else {
+          chatMessages.length = 0;
+          chatMessages.push(...localBackupData.chats);
+        }
+      } else if (Array.isArray(localBackupData.chatMessages)) {
+        chatMessages.length = 0;
+        chatMessages.push(...localBackupData.chatMessages);
+      }
+
+      needsSyncToSupabase = true;
     } else {
-      chatMessages.length = 0;
-      chatMessages.push(...localBackupData.chats);
+      // Both Supabase and Local Backup are empty! Seed defaults.
+      console.log("[BOOT] Both Supabase and local backup are empty. Seeding default collections...");
+      masterPromotions.length = 0;
+      masterPromotions.push(...defaultSeedPromotions);
+ 
+      masterFacilities.length = 0;
+      masterFacilities.push(...defaultSeedFacilities);
+ 
+      masterRestaurants.length = 0;
+      masterRestaurants.push(...defaultSeedRestaurants);
+ 
+      masterRecos.length = 0;
+      masterRecos.push(...defaultSeedRecos);
+ 
+      needsSyncToSupabase = true;
+      needsLocalSave = true;
     }
-  } else if (Array.isArray(localBackupData.chatMessages)) {
-    chatMessages.length = 0;
-    chatMessages.push(...localBackupData.chatMessages);
   }
-
-  console.log("[BOOT] Loading from local backup");
-  
-  if (localBackupData.config) {
-    for (const key in masterConfig) {
-      delete (masterConfig as any)[key];
-    }
-    Object.assign(masterConfig, localBackupData.config);
-  }
-  // Exclusive promotions and hotel facilities are intentionally not restored from saved state as per user instructions
-  /*
-  if (Array.isArray(localBackupData.promotions)) {
-    masterPromotions.length = 0;
-    masterPromotions.push(...localBackupData.promotions);
-  }
-  if (Array.isArray(localBackupData.facilities)) {
-    masterFacilities.length = 0;
-    masterFacilities.push(...localBackupData.facilities);
-  }
-  */
-  if (Array.isArray(localBackupData.restaurants)) {
-    masterRestaurants.length = 0;
-    masterRestaurants.push(...localBackupData.restaurants);
-  }
-  if (Array.isArray(localBackupData.recos)) {
-    masterRecos.length = 0;
-    masterRecos.push(...localBackupData.recos);
-  }
-
+ 
   bootupPhaseActive = false;
-  console.log("[BOOT] Boot phase complete. Writes now enabled.");
-
+  console.log("[BOOT] Boot phase complete. Writes are now fully enabled.");
+ 
+  if (needsLocalSave) {
+    console.log("[BOOT] Saving database state to local JSON file...");
+    saveToChatsDb();
+  }
+ 
+  if (needsSyncToSupabase) {
+    console.log("[BOOT] Syncing state to Supabase...");
+    await syncAllToSupabase();
+  }
+ 
   function saveToChatsDb() {
-    const dbPath = path.resolve("./chats_db.json");
+    const dbPath = configDbPath;
     let originalDbContent: any = {};
     if (fs.existsSync(dbPath)) {
       try {
@@ -428,11 +811,6 @@ async function startServer() {
       } catch (err) {
         console.error("Error reading db content:", err);
       }
-    }
-    // Intentionally clean up and skip saving promotions and facilities in the persistent DB file
-    if (originalDbContent) {
-      delete originalDbContent.promotions;
-      delete originalDbContent.facilities;
     }
     const dataToSave = {
       ...originalDbContent,
@@ -446,18 +824,28 @@ async function startServer() {
       emergencyAttendant: emergencyAttendant,
       departments: ["Housekeeping", "Concierge", "Spa", "Butlers"],
       config: masterConfig,
+      promotions: masterPromotions,
+      facilities: masterFacilities,
       restaurants: masterRestaurants,
-      recos: masterRecos
+      recos: masterRecos,
+      feedbackLogs: feedbackLogs,
+      recoInteractions: recoInteractions,
+      chatbotStatus: chatbotStatus
     };
     const tempPath = dbPath + ".tmp";
     try {
       fs.writeFileSync(tempPath, JSON.stringify(dataToSave, null, 2), "utf8");
       fs.renameSync(tempPath, dbPath);
     } catch (err) {
-      console.error("[LOCAL BACKUP] Error writing to chats_db.json atomic:", err);
+      console.error(`[LOCAL BACKUP] Error writing to ${path.basename(dbPath)} atomic:`, err);
+    }
+ 
+    // Background sync to Supabase
+    if (supabaseClient && !bootupPhaseActive) {
+      syncAllToSupabase().catch(e => console.error("[SUPABASE] Background sync error:", e));
     }
   }
-
+ 
   async function saveSectionToFirestore(section: string, data: any) {
     if (bootupPhaseActive) {
       console.warn("[BOOT GUARD] Write blocked during initialisation — skipping.");
@@ -1498,9 +1886,105 @@ Please generate the next response as the "Recos Chat Assistant" (the Guest Assis
 
   // POST /api/admin/resync
   app.post("/api/admin/resync", async (req, res) => {
+    if (supabaseClient) {
+      try {
+        const masterDoc = await dbLoadDocumentSupabase("system_config", "master");
+        if (masterDoc) {
+          // Config
+          for (const key in masterConfig) {
+            delete (masterConfig as any)[key];
+          }
+          Object.assign(masterConfig, masterDoc);
+
+          // Emergency mode state
+          const emergencyDoc = await dbLoadDocumentSupabase("system_config", "emergency");
+          if (emergencyDoc) {
+            emergencyMode = !!emergencyDoc.emergencyMode;
+            emergencyRoom = String(emergencyDoc.emergencyRoom || "");
+            emergencyGuestName = String(emergencyDoc.emergencyGuestName || "");
+            emergencyEscalated = !!emergencyDoc.emergencyEscalated;
+            emergencyAttendant = String(emergencyDoc.emergencyAttendant || "");
+          }
+
+          // Chatbot status
+          const chatbotDoc = await dbLoadDocumentSupabase("system_config", "chatbot");
+          if (chatbotDoc) {
+            for (const key in chatbotStatus) delete chatbotStatus[key];
+            Object.assign(chatbotStatus, chatbotDoc);
+          }
+
+          // Promotions
+          const dbPromos = await dbLoadCollectionSupabase("promotions");
+          if (dbPromos && dbPromos.length > 0) {
+            masterPromotions.length = 0;
+            masterPromotions.push(...dbPromos);
+          }
+
+          // Facilities
+          const dbFacilities = await dbLoadCollectionSupabase("facilities");
+          if (dbFacilities && dbFacilities.length > 0) {
+            masterFacilities.length = 0;
+            masterFacilities.push(...dbFacilities);
+          }
+
+          // Restaurants
+          const dbRestaurants = await dbLoadCollectionSupabase("restaurants");
+          if (dbRestaurants && dbRestaurants.length > 0) {
+            masterRestaurants.length = 0;
+            masterRestaurants.push(...dbRestaurants);
+          }
+
+          // Recommendations
+          const dbRecos = await dbLoadCollectionSupabase("recos");
+          if (dbRecos && dbRecos.length > 0) {
+            masterRecos.length = 0;
+            masterRecos.push(...dbRecos);
+          }
+
+          // Tasks
+          const dbTasks = await dbLoadCollectionSupabase("tasks");
+          if (dbTasks && dbTasks.length > 0) {
+            tasks.length = 0;
+            tasks.push(...dbTasks);
+          }
+
+          // Chats / Messages
+          const dbChats = await dbLoadCollectionSupabase("chatMessages");
+          if (dbChats && dbChats.length > 0) {
+            chatMessages.length = 0;
+            chatMessages.push(...dbChats);
+          }
+
+          // Staff
+          const dbStaff = await dbLoadCollectionSupabase("staffLogons");
+          if (dbStaff && dbStaff.length > 0) {
+            staffLogons.length = 0;
+            staffLogons.push(...dbStaff);
+          }
+
+          // Feedback
+          const dbFeedback = await dbLoadCollectionSupabase("feedbackLogs");
+          if (dbFeedback && dbFeedback.length > 0) {
+            feedbackLogs.length = 0;
+            feedbackLogs.push(...dbFeedback);
+          }
+
+          // Reco Interactions
+          const dbInteractions = await dbLoadCollectionSupabase("recoInteractions");
+          if (dbInteractions && dbInteractions.length > 0) {
+            recoInteractions.length = 0;
+            recoInteractions.push(...dbInteractions);
+          }
+
+          console.log("[SERVER] Loaded database from Supabase successfully via force resync.");
+        }
+      } catch (err: any) {
+        console.warn("[SERVER] Force pull from Supabase failed:", err.message);
+      }
+    }
     saveToChatsDb();
     console.log("[SERVER] Manual resync completed locally.");
-    return res.json({ success: true, updatedAt: Date.now(), message: "Local backup sync complete." });
+    return res.json({ success: true, updatedAt: Date.now(), message: "Supabase database pulled & local sync complete." });
   });
 
   // STAFF REGISTRY CRUD API
@@ -1884,6 +2368,249 @@ Please generate the next response as the "Recos Chat Assistant" (the Guest Assis
     saveToChatsDb();
     console.log("[SERVER] Database cleared of all chats and tasks.");
     return res.json({ success: true, message: "Database cleared of all chats and tasks successfully." });
+  });
+
+  // GET /api/admin/export-db - export database file as attachment with ADMIN2025 password
+  app.get("/api/admin/export-db", async (req, res) => {
+    const { password } = req.query;
+    if (password !== "ADMIN2025") {
+      return res.status(401).send("Incorrect admin password.");
+    }
+
+    if (supabaseClient) {
+      try {
+        console.log("[EXPORT] Exporting database directly from Supabase tables...");
+        const masterDoc = await dbLoadDocumentSupabase("system_config", "master") || masterConfig;
+        const emergencyDoc = await dbLoadDocumentSupabase("system_config", "emergency") || {
+          emergencyMode,
+          emergencyRoom,
+          emergencyGuestName,
+          emergencyEscalated,
+          emergencyAttendant
+        };
+        const chatbotDoc = await dbLoadDocumentSupabase("system_config", "chatbot") || chatbotStatus;
+
+        const [
+          promotions,
+          facilities,
+          restaurants,
+          recos,
+          tasksList,
+          chatMessagesList,
+          staffList,
+          feedbackList,
+          recoInteractionsList
+        ] = await Promise.all([
+          dbLoadCollectionSupabase("promotions"),
+          dbLoadCollectionSupabase("facilities"),
+          dbLoadCollectionSupabase("restaurants"),
+          dbLoadCollectionSupabase("recos"),
+          dbLoadCollectionSupabase("tasks"),
+          dbLoadCollectionSupabase("chatMessages"),
+          dbLoadCollectionSupabase("staffLogons"),
+          dbLoadCollectionSupabase("feedbackLogs"),
+          dbLoadCollectionSupabase("recoInteractions")
+        ]);
+
+        const exportedData = {
+          config: masterDoc,
+          emergency: !!emergencyDoc.emergencyMode,
+          emergencyRoom: String(emergencyDoc.emergencyRoom || ""),
+          emergencyGuestName: String(emergencyDoc.emergencyGuestName || ""),
+          emergencyEscalated: !!emergencyDoc.emergencyEscalated,
+          emergencyAttendant: String(emergencyDoc.emergencyAttendant || ""),
+          chatbotStatus: chatbotDoc,
+          promotions: promotions.length > 0 ? promotions : masterPromotions,
+          facilities: facilities.length > 0 ? facilities : masterFacilities,
+          restaurants: restaurants.length > 0 ? restaurants : masterRestaurants,
+          recos: recos.length > 0 ? recos : masterRecos,
+          tasks: tasksList.length > 0 ? tasksList : tasks,
+          chats: chatMessagesList.length > 0 ? chatMessagesList : chatMessages,
+          staffLogons: staffList.length > 0 ? staffList : staffLogons,
+          feedbackLogs: feedbackList.length > 0 ? feedbackList : feedbackLogs,
+          recoInteractions: recoInteractionsList.length > 0 ? recoInteractionsList : recoInteractions,
+          departments: ["Housekeeping", "Concierge", "Spa", "Butlers"]
+        };
+
+        res.setHeader("Content-Disposition", `attachment; filename="supabase_export_${Date.now()}.json"`);
+        res.setHeader("Content-Type", "application/json");
+        return res.json(exportedData);
+      } catch (err: any) {
+        console.warn("[EXPORT] Failed to export from Supabase, falling back to local file:", err.message);
+      }
+    }
+
+    if (!fs.existsSync(configDbPath)) {
+      return res.status(404).send("Database file not found yet.");
+    }
+    res.setHeader("Content-Disposition", `attachment; filename="${path.basename(configDbPath)}"`);
+    res.setHeader("Content-Type", "application/json");
+    return res.sendFile(configDbPath);
+  });
+
+  // POST /api/admin/import-db - Import database JSON structure to Supabase & local memory
+  app.post("/api/admin/import-db", async (req, res) => {
+    const { password, dbData, overrideConfirmed } = req.body;
+    if (password !== "ADMIN2025") {
+      return res.status(401).json({ success: false, message: "Incorrect admin password." });
+    }
+    if (!dbData || typeof dbData !== "object") {
+      return res.status(400).json({ success: false, message: "Invalid JSON format provided." });
+    }
+
+    // 2. Validate that all key collections are present (promotions, facilities, restaurants, recos)
+    const requiredKeys = ["promotions", "facilities", "restaurants", "recos"];
+    const missingKeys = requiredKeys.filter(k => !Array.isArray(dbData[k]));
+    if (missingKeys.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Validation failed: JSON backup file is missing standard collections: ${missingKeys.join(", ")}` 
+      });
+    }
+
+    // 3. If override is not confirmed, check if Supabase is already populated
+    if (supabaseClient && !overrideConfirmed) {
+      try {
+        const masterDoc = await dbLoadDocumentSupabase("system_config", "master");
+        if (masterDoc) {
+          return res.status(409).json({
+            success: false,
+            needsConfirmation: true,
+            message: "Warning: Your cloud Supabase database already contains existing data. To overwrite it, please confirm your choice."
+          });
+        }
+      } catch (err: any) {
+        console.error("[SUPABASE IMPORT] Error checking existing configuration:", err.message);
+      }
+    }
+
+    // 4. Overwrite in-memory structures and save locally + to supabase
+    try {
+      // Config
+      if (dbData.config) {
+        for (const key in masterConfig) {
+          delete (masterConfig as any)[key];
+        }
+        Object.assign(masterConfig, dbData.config);
+      } else if (dbData.masterConfig) {
+        for (const key in masterConfig) {
+          delete (masterConfig as any)[key];
+        }
+        Object.assign(masterConfig, dbData.masterConfig);
+      }
+
+      // Arrays
+      if (Array.isArray(dbData.promotions)) {
+        masterPromotions.length = 0;
+        masterPromotions.push(...dbData.promotions);
+      }
+      if (Array.isArray(dbData.facilities)) {
+        masterFacilities.length = 0;
+        masterFacilities.push(...dbData.facilities);
+      }
+      if (Array.isArray(dbData.restaurants)) {
+        masterRestaurants.length = 0;
+        masterRestaurants.push(...dbData.restaurants);
+      }
+      if (Array.isArray(dbData.recos)) {
+        masterRecos.length = 0;
+        masterRecos.push(...dbData.recos);
+      }
+      if (Array.isArray(dbData.tasks)) {
+        tasks.length = 0;
+        tasks.push(...dbData.tasks);
+      }
+      if (Array.isArray(dbData.staffLogons)) {
+        staffLogons.length = 0;
+        staffLogons.push(...dbData.staffLogons);
+      }
+      if (Array.isArray(dbData.feedbackLogs)) {
+        feedbackLogs.length = 0;
+        feedbackLogs.push(...dbData.feedbackLogs);
+      }
+      if (Array.isArray(dbData.recoInteractions)) {
+        recoInteractions.length = 0;
+        recoInteractions.push(...dbData.recoInteractions);
+      }
+
+      // Emergency State
+      if (dbData.emergency !== undefined) {
+        emergencyMode = !!dbData.emergency;
+      }
+      if (dbData.emergencyRoom !== undefined) {
+        emergencyRoom = String(dbData.emergencyRoom || "");
+      }
+      if (dbData.emergencyGuestName !== undefined) {
+        emergencyGuestName = String(dbData.emergencyGuestName || "");
+      }
+      if (dbData.emergencyEscalated !== undefined) {
+        emergencyEscalated = !!dbData.emergencyEscalated;
+      }
+      if (dbData.emergencyAttendant !== undefined) {
+        emergencyAttendant = String(dbData.emergencyAttendant || "");
+      }
+
+      // Chatbot
+      if (dbData.chatbotStatus) {
+        for (const k in chatbotStatus) delete chatbotStatus[k];
+        Object.assign(chatbotStatus, dbData.chatbotStatus);
+      }
+
+      // Chat Messages
+      if (Array.isArray(dbData.chats)) {
+        const hasNestedMessages = dbData.chats.some((c: any) => c && Array.isArray(c.messages));
+        if (hasNestedMessages) {
+          const flat: any[] = [];
+          for (const chatThread of dbData.chats) {
+            if (chatThread && Array.isArray(chatThread.messages)) {
+              for (const msg of chatThread.messages) {
+                flat.push({
+                  ...msg,
+                  roomNumber: msg.roomNumber || chatThread.roomNumber || "0",
+                  senderName: msg.senderName || chatThread.guestName,
+                });
+              }
+            }
+          }
+          chatMessages.length = 0;
+          chatMessages.push(...flat);
+        } else {
+          chatMessages.length = 0;
+          chatMessages.push(...dbData.chats);
+        }
+      } else if (Array.isArray(dbData.chatMessages)) {
+        chatMessages.length = 0;
+        chatMessages.push(...dbData.chatMessages);
+      }
+
+      // Save locally
+      saveToChatsDb();
+
+      // Synchronize immediately to Supabase
+      if (supabaseClient) {
+        await syncAllToSupabase();
+      }
+
+      // 5. Success with counts
+      return res.json({
+        success: true,
+        message: "Successfully synchronized database import to local storage and Cloud Supabase database.",
+        counts: {
+          promotions: masterPromotions.length,
+          facilities: masterFacilities.length,
+          restaurants: masterRestaurants.length,
+          recos: masterRecos.length,
+          tasks: tasks.length,
+          chatMessages: chatMessages.length,
+          staffLogons: staffLogons.length,
+          feedbackLogs: feedbackLogs.length,
+          recoInteractions: recoInteractions.length,
+        }
+      });
+    } catch (e: any) {
+      console.error("[IMPORT SYSTEM ERROR]:", e);
+      return res.status(500).json({ success: false, message: `System Import Error: ${e.message}` });
+    }
   });
 
   // CMS CUSTOMIZATIONS (Optional Backend Persisted Sinks)

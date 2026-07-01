@@ -2713,6 +2713,7 @@ export function StaffRegistryView({
   const [clearPassword, setClearPassword] = useState("");
   const [clearLoading, setClearLoading] = useState(false);
   const [clearStatus, setClearStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const [backupStatus, setBackupStatus] = useState<{ success: boolean; message: string } | null>(null);
   const [showConfirmButton, setShowConfirmButton] = useState(false);
 
   const [resending, setResending] = useState(false);
@@ -2777,6 +2778,26 @@ export function StaffRegistryView({
     } finally {
       setClearLoading(false);
     }
+  };
+
+  const handleBackupDb = () => {
+    setBackupStatus(null);
+    if (!clearPassword) {
+      setBackupStatus({ success: false, message: "Please enter the admin password first." });
+      return;
+    }
+    if (clearPassword !== "ADMIN2025") {
+      setBackupStatus({ success: false, message: "Incorrect password." });
+      return;
+    }
+    setBackupStatus({ success: true, message: "Backup download initiated." });
+    const url = `/api/admin/export-db?password=${encodeURIComponent(clearPassword)}`;
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleOpenModal = (item?: any) => {
@@ -3032,7 +3053,6 @@ export function StaffRegistryView({
                     <option value="staff">Staff Desk (Basic)</option>
                     <option value="manager">Manager Role</option>
                     <option value="admin">Office Admin</option>
-                    <option value="recos">Recommendations</option>
                   </select>
                 </div>
                 <div className="flex flex-col space-y-1">
@@ -3089,6 +3109,39 @@ export function StaffRegistryView({
           </div>
         </div>
       )}
+
+      {/* Database Backup & Export */}
+      <div className="bg-[#1C2C24]/30 border border-[#2D5A27]/40 rounded-xl p-4 mt-6 text-left space-y-3">
+        <div className="space-y-0.5">
+          <h5 className="font-serif font-bold text-xs text-[#62C370] uppercase tracking-wider">
+            Database Backup & Export System
+          </h5>
+          <p className="text-[11px] text-slate-400 font-sans leading-relaxed">
+            Download the current active JSON database file (<code className="font-mono text-[10px] text-slate-350">chats_db_prod.json</code> or <code className="font-mono text-[10px] text-slate-350">chats_db_dev.json</code>) securely.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            type="password"
+            value={clearPassword}
+            onChange={(e) => setClearPassword(e.target.value)}
+            placeholder="Enter admin password..."
+            className="bg-black/40 border border-slate-800 focus:border-emerald-500 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none font-sans max-w-xs"
+          />
+          <button
+            type="button"
+            onClick={handleBackupDb}
+            className="bg-emerald-900/80 hover:bg-emerald-800 text-emerald-100 font-mono text-[10px] uppercase tracking-wider font-bold px-4 py-2 rounded-lg transition-all border border-emerald-800/40 cursor-pointer"
+          >
+            Download Database JSON
+          </button>
+        </div>
+        {backupStatus && (
+          <p className={`text-[10px] font-mono ${backupStatus.success ? "text-[#62C370]" : "text-rose-400"}`}>
+            {backupStatus.message}
+          </p>
+        )}
+      </div>
 
       {/* Database Purge Cleanup Tool */}
       <div className="bg-rose-950/10 border border-rose-900/35 rounded-xl p-4 mt-6 text-left space-y-3">
@@ -3294,6 +3347,17 @@ export function GeneralSettingsView({
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [syncLoading, setSyncLoading] = useState(false);
+  const [backupPassword, setBackupPassword] = useState("");
+  const [backupStatus, setBackupStatus] = useState<{ success: boolean; message: string } | null>(null);
+
+  // Import Database states
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importJsonData, setImportJsonData] = useState<any | null>(null);
+  const [importValidationMsg, setImportValidationMsg] = useState<{ success: boolean; message: string } | null>(null);
+  const [overrideConfirmed, setOverrideConfirmed] = useState(false);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importStatus, setImportStatus] = useState<{ success: boolean; message: string; counts?: any } | null>(null);
+  const [showOverridePrompt, setShowOverridePrompt] = useState(false);
 
   // Supabase API Diagnostics State
   const [testLoading, setTestLoading] = useState(false);
@@ -3307,6 +3371,7 @@ export function GeneralSettingsView({
     postgrestDetails: string;
     details: string;
     error?: string;
+    tableCounts?: { tableName: string; rowCount: number | string; exists: boolean }[];
   } | null>(null);
 
   const testSupabaseConnectionAction = async () => {
@@ -3382,6 +3447,63 @@ export function GeneralSettingsView({
         postgrestDetails = "Unable to execute lookup on the Postgrest REST endpoint.";
       }
 
+      // 3. Query all table counts
+      const countsReport: { tableName: string; rowCount: number | string; exists: boolean }[] = [];
+      const tableNames = [
+        "promotions",
+        "facilities",
+        "restaurants",
+        "recos",
+        "tasks",
+        "chatMessages",
+        "staffLogons",
+        "feedbackLogs",
+        "recoInteractions",
+        "system_config"
+      ];
+
+      for (const t of tableNames) {
+        const snakeT = t.replace(/([A-Z])/g, "_$1").toLowerCase();
+        let activeT = t;
+        let exists = false;
+        let count: number | string = 0;
+
+        try {
+          let { count: c1, error: e1 } = await supabase!
+            .from(t)
+            .select("*", { count: "exact", head: true });
+
+          if (!e1) {
+            exists = true;
+            count = c1 ?? 0;
+          } else if (e1.code === "42P01") {
+            let { count: c2, error: e2 } = await supabase!
+              .from(snakeT)
+              .select("*", { count: "exact", head: true });
+            if (!e2) {
+              exists = true;
+              activeT = snakeT;
+              count = c2 ?? 0;
+            } else {
+              exists = false;
+              count = "Not created yet";
+            }
+          } else {
+            exists = true;
+            count = `Error: ${e1.message}`;
+          }
+        } catch (err: any) {
+          exists = false;
+          count = `Error: ${err.message || err}`;
+        }
+
+        countsReport.push({
+          tableName: activeT,
+          rowCount: count,
+          exists
+        });
+      }
+
       const overallSuccess = authSuccess || dbSuccess;
 
       setTestResult({
@@ -3394,7 +3516,8 @@ export function GeneralSettingsView({
         postgrestDetails,
         details: overallSuccess
           ? "Connection test succeeded! The Supabase endpoint answered our handshakes successfully."
-          : "Connection check failed. Please inspect console logs or the specific status indicators below."
+          : "Connection check failed. Please inspect console logs or the specific status indicators below.",
+        tableCounts: countsReport
       });
     } catch (gErr: any) {
       setTestResult({
@@ -3466,6 +3589,118 @@ export function GeneralSettingsView({
     URL.revokeObjectURL(url);
   };
 
+  const handleBackupDb = () => {
+    setBackupStatus(null);
+    if (!backupPassword) {
+      setBackupStatus({ success: false, message: "Please enter the admin password first." });
+      return;
+    }
+    if (backupPassword !== "ADMIN2025") {
+      setBackupStatus({ success: false, message: "Incorrect password." });
+      return;
+    }
+    setBackupStatus({ success: true, message: "Backup download initiated." });
+    const url = `/api/admin/export-db?password=${encodeURIComponent(backupPassword)}`;
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportFile(file);
+    setImportStatus(null);
+    setImportValidationMsg(null);
+    setShowOverridePrompt(false);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        setImportJsonData(parsed);
+        
+        // Validate keys
+        const requiredKeys = ["promotions", "facilities", "restaurants", "recos"];
+        const missingKeys = requiredKeys.filter(k => !Array.isArray(parsed[k]));
+        if (missingKeys.length > 0) {
+          setImportValidationMsg({
+            success: false,
+            message: `Validation failed: File is missing required database collections: ${missingKeys.join(", ")}`
+          });
+        } else {
+          setImportValidationMsg({
+            success: true,
+            message: `Validated! All required collections found: ${requiredKeys.join(", ")}`
+          });
+        }
+      } catch (err) {
+        setImportValidationMsg({
+          success: false,
+          message: "Failed to parse file: Invalid JSON format."
+        });
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleImportToSupabase = async (forceOverwrite = false) => {
+    setImportStatus(null);
+    if (!backupPassword) {
+      setImportStatus({ success: false, message: "Please enter your admin password in the export box first." });
+      return;
+    }
+    if (!importJsonData) {
+      setImportStatus({ success: false, message: "Please select a valid database JSON backup file first." });
+      return;
+    }
+    if (importValidationMsg && !importValidationMsg.success) {
+      setImportStatus({ success: false, message: "Cannot import. JSON file failed validation check." });
+      return;
+    }
+
+    setImportLoading(true);
+    try {
+      const response = await fetch("/api/admin/import-db", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          password: backupPassword,
+          dbData: importJsonData,
+          overrideConfirmed: forceOverwrite || overrideConfirmed
+        })
+      });
+
+      const resData = await response.json();
+      if (response.status === 409) {
+        // Needs confirmation
+        setShowOverridePrompt(true);
+        setImportStatus({ success: false, message: resData.message });
+      } else if (!response.ok || !resData.success) {
+        setImportStatus({ success: false, message: resData.message || "An error occurred during importation." });
+      } else {
+        setImportStatus({
+          success: true,
+          message: resData.message,
+          counts: resData.counts
+        });
+        setImportFile(null);
+        setImportJsonData(null);
+        setImportValidationMsg(null);
+        setShowOverridePrompt(false);
+        setOverrideConfirmed(false);
+        onRefresh(); // Refresh everything in the dashboard!
+      }
+    } catch (err: any) {
+      setImportStatus({ success: false, message: `Network error: ${err.message}` });
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
   const filteredTasks = useMemo(() => {
     if (!tasks) return [];
     const startTimestamp = new Date(dateFrom + "T00:00:00").getTime();
@@ -3485,12 +3720,12 @@ export function GeneralSettingsView({
         method: "POST"
       });
       if (res.ok) {
-        setSuccessMsg("In-memory state forced synced from Firestore successfully.");
+        setSuccessMsg("In-memory state forced synced from Supabase successfully.");
         onRefresh();
         setTimeout(() => setSuccessMsg(""), 3000);
       } else {
         const errJson = await res.json();
-        setErrorMsg(errJson.error || "Failed to force sync from Firestore.");
+        setErrorMsg(errJson.error || "Failed to force sync from Supabase.");
         setTimeout(() => setErrorMsg(""), 4000);
       }
     } catch (err) {
@@ -4001,6 +4236,236 @@ export function GeneralSettingsView({
         <div className="flex justify-between items-center text-[10px] text-slate-500 font-mono px-1">
           <span>Query result size: {filteredTasks.length} matches</span>
           <span>System TZ: UTC</span>
+        </div>
+      </div>
+
+      {/* SYSTEM DATA BACKUPS & PORTABILITY PORTAL */}
+      <div className="bg-gradient-to-br from-[#121c17] to-black border border-emerald-900/40 rounded-xl p-6 mt-8 text-left space-y-4">
+        <div className="border-b border-slate-850 pb-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          <div className="space-y-0.5">
+            <h4 className="font-serif text-sm tracking-wider text-[#62C370] font-semibold flex items-center gap-2">
+              <Database size={16} className="text-[#62C370]" /> Database Backups & Portability Portal
+            </h4>
+            <p className="text-[11px] text-slate-400 font-sans leading-relaxed">
+              Export and download current production data secure backups. Validated via the administrator master credentials.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-1">
+          {/* Production Database JSON Download */}
+          <div className="bg-black/30 border border-slate-900 rounded-lg p-4 space-y-3">
+            <div className="space-y-0.5">
+              <span className="font-mono text-[#62C370] text-[9px] font-bold uppercase tracking-wider">Secure Server-Side JSON</span>
+              <h5 className="text-xs text-slate-200 font-sans font-semibold">Active Database Export (JSON)</h5>
+              <p className="text-[10px] text-slate-400 font-sans leading-relaxed">
+                Retrieve a complete export of the persistent <code className="font-mono text-[9px] text-amber-200/90">chats_db_prod.json</code> directly from the active server instance.
+              </p>
+            </div>
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center gap-2">
+                <input
+                  type="password"
+                  value={backupPassword}
+                  onChange={(e) => setBackupPassword(e.target.value)}
+                  placeholder="Enter admin password..."
+                  className="bg-black/50 border border-slate-800 focus:border-emerald-500 rounded px-2.5 py-1.5 text-[11px] text-slate-200 focus:outline-none font-sans w-full max-w-[160px]"
+                />
+                <button
+                  type="button"
+                  onClick={handleBackupDb}
+                  className="bg-emerald-900 hover:bg-emerald-800 text-emerald-100 font-mono text-[10px] uppercase tracking-wider font-bold px-3 py-1.5 rounded transition-all border border-emerald-800/40 cursor-pointer flex items-center gap-1"
+                >
+                  <Download size={11} /> Download JSON
+                </button>
+              </div>
+              {backupStatus && (
+                <p className={`text-[10px] font-mono ${backupStatus.success ? "text-[#62C370]" : "text-rose-400"}`}>
+                  {backupStatus.message}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Diagnostics & Client Backups */}
+          <div className="bg-black/30 border border-slate-900 rounded-lg p-4 space-y-3">
+            <div className="space-y-0.5">
+              <span className="font-mono text-amber-400/80 text-[9px] font-bold uppercase tracking-wider">Browser Cache & State Logs</span>
+              <h5 className="text-xs text-slate-200 font-sans font-semibold">Client-Side Logs & Local State</h5>
+              <p className="text-[10px] text-slate-400 font-sans leading-relaxed">
+                Download a lightweight JSON bundle of currently synchronized client states, or download complete chat history as Excel-compatible CSV.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={downloadFullBackupJson}
+                className="bg-amber-600/10 hover:bg-amber-600/20 text-amber-400 font-mono text-[10px] uppercase tracking-wider font-bold px-3 py-1.5 rounded transition-all border border-amber-500/20 cursor-pointer flex items-center gap-1"
+              >
+                <Download size={11} /> Master State JSON
+              </button>
+              <button
+                type="button"
+                onClick={downloadChatLogsCsv}
+                className="bg-slate-900 hover:bg-slate-800 text-slate-300 font-mono text-[10px] uppercase tracking-wider font-bold px-3 py-1.5 rounded transition-all border border-slate-800 cursor-pointer flex items-center gap-1"
+              >
+                <Download size={11} /> Chat Logs CSV
+              </button>
+            </div>
+
+            <div className="pt-2 border-t border-slate-800/40">
+              <button
+                type="button"
+                disabled={testLoading}
+                onClick={testSupabaseConnectionAction}
+                className="w-full bg-slate-900 hover:bg-slate-800 text-amber-400/95 font-mono text-[10px] uppercase tracking-wider font-bold px-3 py-1.5 rounded transition-all border border-amber-500/10 cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                {testLoading ? "Running Diagnostics..." : "🔍 Run Live Supabase Diagnostics & Counts"}
+              </button>
+            </div>
+
+            {testResult && (
+              <div className="p-3 bg-slate-950/80 rounded border border-slate-800/60 mt-3 space-y-2 text-left text-[11px] font-mono">
+                <div className="flex justify-between items-center text-slate-400 text-[10px] pb-1.5 border-b border-slate-800">
+                  <span>Supabase Status:</span>
+                  <span className={testResult.success ? "text-emerald-400 font-bold" : "text-rose-400 font-bold"}>
+                    {testResult.success ? "ACTIVE" : "FAILED"}
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400 leading-normal mb-2">{testResult.details}</p>
+                {testResult.tableCounts && (
+                  <div className="space-y-1.5 pt-1">
+                    <span className="text-[9px] text-slate-500 uppercase tracking-widest block font-bold">Supabase Tables & Counts:</span>
+                    <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                      {testResult.tableCounts.map((tc) => (
+                        <div key={tc.tableName} className="p-1.5 bg-slate-900 rounded border border-slate-800 flex justify-between items-center">
+                          <span className="text-slate-300 font-mono truncate max-w-[110px]">{tc.tableName}</span>
+                          <span className={tc.exists ? "text-emerald-400 font-bold" : "text-amber-500/85"}>
+                            {tc.rowCount}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Import Database JSON to Supabase Section */}
+        <div className="bg-black/40 border border-slate-900 rounded-lg p-5 space-y-4 pt-4 mt-4">
+          <div className="space-y-1">
+            <span className="font-mono text-cyan-400 text-[9px] font-bold uppercase tracking-wider">Cloud Storage Initialization</span>
+            <h5 className="text-xs text-slate-200 font-sans font-semibold">Import Database JSON to Supabase</h5>
+            <p className="text-[10px] text-slate-400 font-sans leading-relaxed">
+              Upload your downloaded production database JSON file (<code className="font-mono text-[9px] text-amber-200/90">chats_db_prod.json</code> or master state) and synchronize it straight to the live cloud Supabase database tables.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+            {/* File upload and Validation */}
+            <div className="space-y-3">
+              <label className="block text-[11px] text-slate-300 font-sans font-medium">Select Backup JSON File</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleFileChange}
+                  className="bg-slate-950 border border-slate-800 text-[11px] text-slate-400 file:bg-emerald-950 file:text-emerald-300 file:border-0 file:rounded file:px-2.5 file:py-1 file:mr-2 hover:file:bg-emerald-900 rounded cursor-pointer w-full"
+                />
+              </div>
+
+              {importValidationMsg && (
+                <div className={`p-2 rounded text-[10px] font-sans ${
+                  importValidationMsg.success ? "bg-emerald-950/30 text-emerald-300 border border-emerald-900/40" : "bg-rose-950/30 text-rose-300 border border-rose-900/40"
+                }`}>
+                  {importValidationMsg.message}
+                </div>
+              )}
+            </div>
+
+            {/* Actions & Confirmation */}
+            <div className="space-y-4 bg-slate-950/40 p-3 rounded-lg border border-slate-900/60 text-xs text-slate-300">
+              <div className="flex items-start gap-2.5">
+                <input
+                  type="checkbox"
+                  id="override-confirm"
+                  checked={overrideConfirmed}
+                  onChange={(e) => setOverrideConfirmed(e.target.checked)}
+                  className="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 bg-slate-900 border-slate-800 cursor-pointer"
+                />
+                <label htmlFor="override-confirm" className="text-[11px] font-sans text-slate-400 leading-normal cursor-pointer select-none">
+                  <span className="text-slate-200 font-semibold block">Explicitly Overwrite Existing Supabase Data</span>
+                  Permit full replacement of all collections and master config settings currently stored in the cloud.
+                </label>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  disabled={importLoading || !importJsonData || (importValidationMsg && !importValidationMsg.success)}
+                  onClick={() => handleImportToSupabase(false)}
+                  className={`font-mono text-[10px] uppercase tracking-wider font-bold px-4 py-2 rounded transition-all flex items-center gap-1.5 cursor-pointer ${
+                    importLoading || !importJsonData || (importValidationMsg && !importValidationMsg.success)
+                      ? "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/20"
+                      : "bg-[#62C370] hover:bg-[#52B360] text-slate-950 border border-emerald-700"
+                  }`}
+                >
+                  {importLoading ? "Importing..." : "Sync Import to Supabase"}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Overwrite Prompt alert */}
+          {showOverridePrompt && (
+            <div className="bg-amber-950/40 border border-amber-900/40 p-3.5 rounded-lg text-xs text-amber-200 space-y-2">
+              <p className="font-semibold">⚠️ Cloud Data Detected</p>
+              <p className="text-[11px] leading-relaxed">
+                We've detected an existing master configuration in your cloud Supabase database. To protect you against accidental data loss, please confirm that you want to replace it entirely.
+              </p>
+              <div className="flex items-center gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleImportToSupabase(true)}
+                  className="bg-amber-700 hover:bg-amber-600 text-amber-950 font-sans font-bold px-3 py-1 rounded text-[11px]"
+                >
+                  Yes, Overwrite Cloud Data
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowOverridePrompt(false)}
+                  className="text-amber-400 hover:text-amber-300 font-sans text-[11px]"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Success Counts / Error Feedback */}
+          {importStatus && (
+            <div className={`p-3 rounded-lg border text-xs leading-relaxed space-y-2 ${
+              importStatus.success ? "bg-emerald-950/40 border-emerald-900/40 text-emerald-300" : "bg-rose-950/40 border-rose-900/40 text-rose-300"
+            }`}>
+              <p className="font-sans font-bold">{importStatus.success ? "🎉 Import Succeeded!" : "❌ Import Failed"}</p>
+              <p className="text-[11px]">{importStatus.message}</p>
+              
+              {importStatus.success && importStatus.counts && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-emerald-900/30 text-[10px] font-mono text-emerald-400 font-medium">
+                  <div>Promotions: {importStatus.counts.promotions}</div>
+                  <div>Facilities: {importStatus.counts.facilities}</div>
+                  <div>Restaurants: {importStatus.counts.restaurants}</div>
+                  <div>Recommendations: {importStatus.counts.recos}</div>
+                  <div>Tasks/Alerts: {importStatus.counts.tasks}</div>
+                  <div>Chat Messages: {importStatus.counts.chatMessages}</div>
+                  <div>Feedback Logs: {importStatus.counts.feedbackLogs}</div>
+                  <div>User Logons: {importStatus.counts.staffLogons}</div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

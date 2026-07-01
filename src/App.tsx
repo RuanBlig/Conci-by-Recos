@@ -578,29 +578,17 @@ function CheckInScreen() {
     const normalizedU = u.toUpperCase();
     const normalizedP = p.toUpperCase();
 
-    // Partner/Company Sign-In validation
-    if (adminCategory === "Recos" && recosSubMode === "partner") {
-      if (normalizedP === "PASSWORDABC" || normalizedP === "PARTNER2025" || p === BACKDOOR_CONFIG.RECOS_PASSKEY || normalizedP === "ADMIN2025" || normalizedP === "RUAN") {
-        setStaffName(u); // Company name is stored in staffName
-        setRole("recos_partner");
-        setShowAdminModal(false);
-        setAdminUsername("");
-        setAdminPassword("");
-        return;
-      } else {
-        setAdminError("Invalid partner passkey.");
-        return;
-      }
-    }
-
-    // 1. Direct local credential configurations requested:
+    // 1. Direct local credential configurations for Recos:
     if (adminCategory === "Recos") {
-      if (normalizedU === "ADMIN" && normalizedP === "ADMIN2025") {
+      if (normalizedU === "ADMIN" && p === "ADMIN2025") {
         setStaffName(u);
         setRole("recos");
         setShowAdminModal(false);
         setAdminUsername("");
         setAdminPassword("");
+        return;
+      } else {
+        setAdminError("Invalid credentials. Only ADMIN / ADMIN2025 permitted.");
         return;
       }
     } else {
@@ -634,16 +622,6 @@ function CheckInScreen() {
           setAdminPassword("");
           return;
         }
-      } else if (adminCategory === "Recos") {
-        if (p.toUpperCase() === "RUAN" || p === BACKDOOR_CONFIG.RECOS_PASSKEY) {
-          setStaffName(u);
-          setRole("recos");
-          setShowAdminModal(false);
-          setAdminLoading(false);
-          setAdminUsername("");
-          setAdminPassword("");
-          return;
-        }
       }
 
       // 3. Standard authentication through unified backend
@@ -664,8 +642,6 @@ function CheckInScreen() {
           setRole(mappedRole === "admin" ? "admin" : "manager");
         } else if (adminCategory === "Back-office") {
           setRole("admin");
-        } else if (adminCategory === "Recos") {
-          setRole("recos");
         } else {
           setRole(mappedRole || "staff");
         }
@@ -683,12 +659,6 @@ function CheckInScreen() {
         } else if (adminCategory === "Admin" && (p === "password123" || p === "password456")) {
           setStaffName(u);
           setRole(p === "password456" ? "admin" : "manager");
-          setShowAdminModal(false);
-          setAdminUsername("");
-          setAdminPassword("");
-        } else if (adminCategory === "Recos" && p === "passwordabc") {
-          setStaffName(u);
-          setRole("recos");
           setShowAdminModal(false);
           setAdminUsername("");
           setAdminPassword("");
@@ -713,12 +683,6 @@ function CheckInScreen() {
       } else if (adminCategory === "Admin" && p === "password456") {
         setStaffName(u);
         setRole("admin");
-        setShowAdminModal(false);
-        setAdminUsername("");
-        setAdminPassword("");
-      } else if (adminCategory === "Recos" && p === "passwordabc") {
-        setStaffName(u);
-        setRole("recos");
         setShowAdminModal(false);
         setAdminUsername("");
         setAdminPassword("");
@@ -903,7 +867,21 @@ function CheckInScreen() {
       </div>
 
       {/* Absolute Bottom Navigation Bar - Aligned with modern visual balance */}
-      <div className="flex justify-center items-center pt-6 pb-4 w-full max-w-[390px] border-t border-slate-900/40">
+      <div className="flex flex-col justify-center items-center pt-6 pb-4 w-full max-w-[390px] border-t border-slate-900/40 space-y-4">
+        <button
+          type="button"
+          onClick={() => {
+            setAdminCategory("Recos");
+            setAdminUsername("");
+            setAdminPassword("");
+            setAdminError("");
+            setForgotMessage("");
+            setShowAdminModal(true);
+          }}
+          className="text-[9.5px] font-sans font-light tracking-[0.08em] text-white/40 hover:text-[#cca472] transition-colors cursor-pointer select-none border-none bg-transparent"
+        >
+          Version 1.0.0
+        </button>
         <button
           type="button"
           onClick={() => {
@@ -942,7 +920,7 @@ function CheckInScreen() {
                     </label>
                     <input
                       type="text"
-                      placeholder={adminCategory === "Recos" && recosSubMode === "partner" ? "Company / brand name (e.g. Marble)" : "Username"}
+                      placeholder="Username"
                       value={adminUsername}
                       onChange={(e) => {
                         setAdminUsername(e.target.value);
@@ -956,7 +934,7 @@ function CheckInScreen() {
                   <div className="space-y-1">
                     <input
                       type="password"
-                      placeholder={adminCategory === "Recos" && recosSubMode === "partner" ? "Passkey" : "Password"}
+                      placeholder="Password"
                       value={adminPassword}
                       onChange={(e) => {
                         setAdminPassword(e.target.value);
@@ -974,8 +952,8 @@ function CheckInScreen() {
                   <label className="text-[10px] font-bold uppercase tracking-widest text-[#cca472]/65 pl-1 font-mono">
                     ACCESS ROLE
                   </label>
-                  <div className="grid grid-cols-4 gap-1 p-1 bg-[#050505] border border-slate-900/80 rounded-xl">
-                    {(["Staff", "Admin", "Back-office", "Recos"] as const).map((cat) => {
+                  <div className="grid grid-cols-3 gap-1 p-1 bg-[#050505] border border-slate-900/80 rounded-xl">
+                    {(["Staff", "Admin", "Back-office"] as const).map((cat) => {
                       const isActive = adminCategory === cat;
                       return (
                         <button
@@ -1000,46 +978,7 @@ function CheckInScreen() {
                   </div>
                 </div>
 
-                {/* RECOS Sub-mode Selector (Admin vs partner) */}
-                {adminCategory === "Recos" && (
-                  <div className="space-y-1.5 text-left animate-fade-in">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-[#cca472]/65 pl-1 font-mono">
-                      RECOS LOG-IN TYPE
-                    </label>
-                    <div className="grid grid-cols-2 gap-1 p-1 bg-[#050505] border border-slate-900/80 rounded-xl">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setRecosSubMode("admin");
-                          setAdminError("");
-                        }}
-                        className={cn(
-                          "py-1.5 text-[9px] uppercase tracking-wider font-extrabold font-mono rounded-lg transition-all cursor-pointer text-center",
-                          recosSubMode === "admin"
-                            ? "bg-[#cca472] text-slate-950 shadow-md"
-                            : "text-slate-400 hover:text-white"
-                        )}
-                      >
-                        ADMIN
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setRecosSubMode("partner");
-                          setAdminError("");
-                        }}
-                        className={cn(
-                          "py-1.5 text-[9px] uppercase tracking-wider font-extrabold font-mono rounded-lg transition-all cursor-pointer text-center",
-                          recosSubMode === "partner"
-                            ? "bg-[#cca472] text-slate-950 shadow-md"
-                            : "text-slate-400 hover:text-white"
-                        )}
-                      >
-                        Company / Partner
-                      </button>
-                    </div>
-                  </div>
-                )}
+
 
                 {adminError && (
                   <p className="text-[10px] font-mono font-extrabold text-red-500 text-center uppercase tracking-wider bg-red-950/20 border border-red-900/25 py-2.5 rounded-xl">
@@ -1260,98 +1199,13 @@ function OldGuestPortal() {
     opHoursNight: "06:00 PM - 11:00 PM"
   });
 
-  const [promotions, setPromotions] = useState<any[]>([
-    {
-      id: "p1",
-      title: "Clubhouse Fixture World Cup",
-      paragraph: "Join us at the Clubhouse as we bring the atmosphere, the flavour and the big game energy to every South African fixture during the FIFA World Cup 🇿🇦🔥",
-      image_url: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&q=80",
-      cta_text: "Make a Booking"
-    },
-    {
-      id: "p2",
-      title: "Father's Day Spit Braai",
-      paragraph: "Celebrate Father’s Day with us with a premium afternoon spit braai experience. Complete with live music and garden playground access for children.",
-      image_url: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80",
-      cta_text: "Make a Booking"
-    }
-  ]);
+  const [promotions, setPromotions] = useState<any[]>([]);
 
-  const [facilities, setFacilities] = useState<any[]>([
-    {
-      id: "fac1",
-      title: "The Sky Pool",
-      description: "Heated infinity pool with panoramic Johannesburg city views, open daily.",
-      image_url: "https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?auto=format&fit=crop&q=80",
-      category: "Swimming"
-    },
-    {
-      id: "fac2",
-      title: "Gym & Fitness Gym",
-      description: "State-of-the-art weights, cardio, and personalized training gear open 24/7.",
-      image_url: "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?auto=format&fit=crop&q=80",
-      category: "Fitness"
-    },
-    {
-      id: "fac3",
-      title: "Aura Wellness Spa",
-      description: "Treat yourself to signature massages and luxury organic skin therapies.",
-      image_url: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80",
-      category: "Wellness"
-    }
-  ]);
+  const [facilities, setFacilities] = useState<any[]>([]);
 
-  const [restaurants, setRestaurants] = useState<any[]>([
-    {
-      id: "rest1",
-      title: "Clubhouse Restaurant & Bar",
-      description: "Fine dining overlooking the golf course, with high ceilings and cozy dining lounges.",
-      image_url: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80",
-      cta_enabled: true,
-      cta_text: "Make a Booking",
-      cta_url: "https://www.dineplan.com/restaurants/sandton-hotel-restaurant",
-      subsections: [
-        {
-          id: "sub-1",
-          title: "The Clubhouse Lounge",
-          description: "Relaxed ambiance with signature cocktails.",
-          timings: [
-            { id: "t1", name: "Breakfast", openTime: "06:00", closeTime: "11:00" },
-            { id: "t2", name: "Dinner", openTime: "18:00", closeTime: "22:00" }
-          ]
-        },
-        {
-          id: "sub-2",
-          title: "The Cigar Bar",
-          description: "A luxury climate-controlled room offering cubans and scotch.",
-          timings: [
-            { id: "t3", name: "After Hours", openTime: "21:00", closeTime: "02:00" }
-          ]
-        }
-      ]
-    }
-  ]);
+  const [restaurants, setRestaurants] = useState<any[]>([]);
 
-  const [recos, setRecos] = useState<any[]>([
-    {
-      id: "reco1",
-      title: "Nelson Mandela Square",
-      paragraph: "Paying homage to one of the world's greatest leaders, with elegant fine dining and premium fashion boutiques.",
-      image_url: "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&q=80",
-      cta_text: "More Info",
-      cta_url: "https://www.google.com/maps/search/Nelson+Mandela+Square",
-      is_featured: true
-    },
-    {
-      id: "reco2",
-      title: "Apartheid Museum",
-      paragraph: "A profoundly moving journey through 20th century South Africa. Perfect for history explorers.",
-      image_url: "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&q=80",
-      cta_text: "More Info",
-      cta_url: "https://www.apartheidmuseum.org/",
-      is_featured: true
-    }
-  ]);
+  const [recos, setRecos] = useState<any[]>([]);
 
   // Synchronize state from backend
   useEffect(() => {
